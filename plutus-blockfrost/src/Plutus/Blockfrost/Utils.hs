@@ -46,10 +46,6 @@ class Show a => ToBlockfrostDatumHash a where
 instance ToBlockfrostDatumHash Plutus.V1.Ledger.Api.DatumHash
 instance ToBlockfrostDatumHash Plutus.V1.Ledger.Api.RedeemerHash
 
-fromSucceed :: Result a -> a
-fromSucceed (Error a)   = error $ show a
-fromSucceed (Success a) = a
-
 toBlockfrostTxHash :: TxOutRef -> TxHash
 toBlockfrostTxHash = TxHash . pack . show . txOutRefId
 
