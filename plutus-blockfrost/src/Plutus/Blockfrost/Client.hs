@@ -50,7 +50,6 @@ handleBlockfrostClient event = do
                     Right a'                -> pure (Just a')
                     Left BlockfrostNotFound -> pure Nothing
                     Left e                  -> ioError (userError $ show e)
-
         case event of
             DatumFromHash d               -> (runClientMaybe . getDatumBlockfrost . toBlockfrostDatumHash) d      >>= processGetDatum
             RedeemerFromHash d            -> (runClientMaybe . getDatumBlockfrost . toBlockfrostDatumHash) d      >>= processGetDatum

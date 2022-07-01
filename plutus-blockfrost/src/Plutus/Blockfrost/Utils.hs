@@ -39,6 +39,14 @@ instance ToBlockfrostScriptHash PS.ValidatorHash
 instance ToBlockfrostScriptHash PS.MintingPolicyHash
 instance ToBlockfrostScriptHash PS.StakeValidatorHash
 
+class Show a => ToBlockfrostScriptHash a where
+  toBlockfrostScriptHash :: a -> Blockfrost.ScriptHash
+  toBlockfrostScriptHash = fromString . show
+
+instance ToBlockfrostScriptHash PS.ValidatorHash
+instance ToBlockfrostScriptHash PS.MintingPolicyHash
+instance ToBlockfrostScriptHash PS.StakeValidatorHash
+
 class Show a => ToBlockfrostDatumHash a where
   toBlockfrostDatumHash :: a -> Blockfrost.DatumHash
   toBlockfrostDatumHash = fromString . show
