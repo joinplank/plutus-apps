@@ -6,7 +6,6 @@
 
 module Plutus.Blockfrost.Responses (
     processTip
-<<<<<<< HEAD
     , processGetDatum
     , processGetValidator
     , processUnspentTxOut
@@ -191,40 +190,3 @@ processUnspentTxOutSetAtAddress pq cred (blockN, xs) = do
 
     utxoDatumHash :: AddressUtxo -> Either Ledger.DatumHash Datum
     utxoDatumHash = maybe (Right unitDatum) (Left . textToDatumHash) . _addressUtxoDataHash
-=======
-    ) where
-
-import Data.Aeson qualified as JSON
-import Data.Aeson.QQ
-import Data.Maybe (fromJust)
-import Data.String
-import Data.Text (Text, unpack)
-
-import Blockfrost.Client
-import Plutus.ChainIndex.Types (Tip (..))
-
-import Plutus.Blockfrost.Utils
-
-processTip :: Block -> IO Tip
-processTip Block{..} = return ((fromSucceed $ JSON.fromJSON hcJSON) :: Tip)
-  where
-      slot :: Slot
-      slot = fromJust _blockSlot
-
-      blockNo :: Integer
-      blockNo = fromJust _blockHeight
-
-      blockId :: Text
-      blockId = unBlockHash _blockHash
-
-      hcJSON :: JSON.Value
-      hcJSON = [aesonQQ|{
-                "tag": "Tip",
-                "tipBlockNo": #{blockNo},
-                "tipBlockId": #{blockId},
-                "tipSlot": {
-                    "getSlot": #{slot}
-                }
-                }
-                |]
->>>>>>> Adds plutus-blockfrost module and getTip endpoint
