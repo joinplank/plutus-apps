@@ -11,6 +11,8 @@ import Control.Monad.IO.Class (MonadIO (..))
 import Ledger.Tx (TxOutRef (..))
 import Plutus.ChainIndex.Effects (ChainIndexQueryEffect (..))
 
+import Plutus.V1.Ledger.Api (Credential (..), TxOutRef)
+
 import Plutus.Blockfrost.Queries
 import Plutus.Blockfrost.Responses
 import Plutus.Blockfrost.Types (BlockfrostEnv (..))
