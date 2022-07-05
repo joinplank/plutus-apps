@@ -147,8 +147,7 @@ lovelaceConfig = Money.defaultDecimalConf
 lovelacesToMInt :: Lovelaces -> Maybe Integer
 lovelacesToMInt = readMaybe . unpack . Money.discreteToDecimal lovelaceConfig Money.Round
 
--- TODO: FIX 1 million
 lovelacesToValue :: Lovelaces -> Ledger.Value
 lovelacesToValue lov = case lovelacesToMInt lov of
   Nothing  -> singleton adaSymbol adaToken 0
-  Just int -> singleton adaSymbol adaToken (1_000_000 * int)
+  Just int -> singleton adaSymbol adaToken int
