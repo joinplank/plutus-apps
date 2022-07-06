@@ -12,7 +12,6 @@ import Data.Proxy (Proxy (..))
 import Data.String
 import Data.Text (Text, pack, unpack)
 import Data.Text qualified as Text (drop, take)
-
 import Text.Hex (decodeHex, encodeHex)
 import Text.Read (readMaybe)
 
