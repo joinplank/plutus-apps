@@ -30,10 +30,13 @@ import Ledger.Tx (ChainIndexTxOut (..), TxOutRef (..))
 import Plutus.ChainIndex.Api (IsUtxoResponse (..), UnspentTxOutSetResponse (..), UtxosResponse (..))
 import Plutus.ChainIndex.Types (BlockId (..), BlockNumber (..), Tip (..))
 import Plutus.V1.Ledger.Address qualified as Ledger
+import Plutus.V1.Ledger.Api (toBuiltin)
 import Plutus.V1.Ledger.Credential (Credential (PubKeyCredential, ScriptCredential))
 import Plutus.V1.Ledger.Scripts (Datum, MintingPolicy, StakeValidator, Validator, ValidatorHash, unitDatum)
 import Plutus.V1.Ledger.Scripts qualified as Ledger (DatumHash)
+import Plutus.V1.Ledger.TxId qualified as Ledger
 import Plutus.V1.Ledger.Value qualified as Ledger
+
 import PlutusTx qualified
 
 import Plutus.Blockfrost.Utils
