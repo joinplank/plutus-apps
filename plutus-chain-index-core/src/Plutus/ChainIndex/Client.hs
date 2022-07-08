@@ -94,14 +94,15 @@ handleChainIndexClient event = do
                 Left (FailureResponse _ Response{responseStatusCode=Status{statusCode=404}}) -> pure Nothing
                 Left e                                                                       -> throwError e
     case event of
-        DatumFromHash d          -> runClientMaybe (getDatum d)
-        ValidatorFromHash d      -> runClientMaybe (getValidator d)
-        MintingPolicyFromHash d  -> runClientMaybe (getMintingPolicy d)
-        StakeValidatorFromHash d -> runClientMaybe (getStakeValidator d)
-        RedeemerFromHash d       -> runClientMaybe (getRedeemer d)
-        UnspentTxOutFromRef r    -> runClientMaybe (getUnspentTxOut r)
-        UtxoSetMembership r      -> runClient (getIsUtxo r)
-        UtxoSetAtAddress pq a    -> runClient (getUtxoSetAtAddress $ UtxoAtAddressRequest (Just pq) a)
-        UtxoSetWithCurrency pq a -> runClient (getUtxoSetWithCurrency $ UtxoWithCurrencyRequest (Just pq) a)
-        TxoSetAtAddress pq a     -> runClient (getTxoSetAtAddress $ TxoAtAddressRequest (Just pq) a)
-        GetTip                   -> runClient getTip
+        DatumFromHash d              -> runClientMaybe (getDatum d)
+        ValidatorFromHash d          -> runClientMaybe (getValidator d)
+        MintingPolicyFromHash d      -> runClientMaybe (getMintingPolicy d)
+        StakeValidatorFromHash d     -> runClientMaybe (getStakeValidator d)
+        RedeemerFromHash d           -> runClientMaybe (getRedeemer d)
+        UnspentTxOutFromRef r        -> runClientMaybe (getUnspentTxOut r)
+        UtxoSetMembership r          -> runClient (getIsUtxo r)
+        UtxoSetAtAddress pq a        -> runClient (getUtxoSetAtAddress $ UtxoAtAddressRequest (Just pq) a)
+        UtxoSetWithCurrency pq a     -> runClient (getUtxoSetWithCurrency $ UtxoWithCurrencyRequest (Just pq) a)
+        TxoSetAtAddress pq a         -> runClient (getTxoSetAtAddress $ TxoAtAddressRequest (Just pq) a)
+        GetTip                       -> runClient getTip
+        UnspentTxOutSetAtAddress _ _ -> error "OPERATION NOT SUPPORTED ON CHAIN INDEX"

@@ -222,17 +222,18 @@ handleChainIndexQueries ::
 handleChainIndexQueries = RequestHandler $ \chainIndexQuery ->
     surroundDebug @Text "handleChainIndexQueries" $ do
       case chainIndexQuery of
-        DatumFromHash h            -> DatumHashResponse <$> ChainIndexEff.datumFromHash h
-        ValidatorFromHash h        -> ValidatorHashResponse <$> ChainIndexEff.validatorFromHash h
-        MintingPolicyFromHash h    -> MintingPolicyHashResponse <$> ChainIndexEff.mintingPolicyFromHash h
-        StakeValidatorFromHash h   -> StakeValidatorHashResponse <$> ChainIndexEff.stakeValidatorFromHash h
-        RedeemerFromHash h         -> RedeemerHashResponse <$> ChainIndexEff.redeemerFromHash h
-        UnspentTxOutFromRef ref    -> UnspentTxOutResponse <$> ChainIndexEff.unspentTxOutFromRef ref
-        UtxoSetMembership txOutRef -> UtxoSetMembershipResponse <$> ChainIndexEff.utxoSetMembership txOutRef
-        UtxoSetAtAddress pq c      -> UtxoSetAtResponse <$> ChainIndexEff.utxoSetAtAddress pq c
-        UtxoSetWithCurrency pq ac  -> UtxoSetWithCurrencyResponse <$> ChainIndexEff.utxoSetWithCurrency pq ac
-        TxoSetAtAddress pq c       -> TxoSetAtResponse <$> ChainIndexEff.txoSetAtAddress pq c
-        GetTip                     -> GetTipResponse <$> ChainIndexEff.getTip
+        DatumFromHash h               -> DatumHashResponse <$> ChainIndexEff.datumFromHash h
+        ValidatorFromHash h           -> ValidatorHashResponse <$> ChainIndexEff.validatorFromHash h
+        MintingPolicyFromHash h       -> MintingPolicyHashResponse <$> ChainIndexEff.mintingPolicyFromHash h
+        StakeValidatorFromHash h      -> StakeValidatorHashResponse <$> ChainIndexEff.stakeValidatorFromHash h
+        RedeemerFromHash h            -> RedeemerHashResponse <$> ChainIndexEff.redeemerFromHash h
+        UnspentTxOutFromRef ref       -> UnspentTxOutResponse <$> ChainIndexEff.unspentTxOutFromRef ref
+        UtxoSetMembership txOutRef    -> UtxoSetMembershipResponse <$> ChainIndexEff.utxoSetMembership txOutRef
+        UtxoSetAtAddress pq c         -> UtxoSetAtResponse <$> ChainIndexEff.utxoSetAtAddress pq c
+        UtxoSetWithCurrency pq ac     -> UtxoSetWithCurrencyResponse <$> ChainIndexEff.utxoSetWithCurrency pq ac
+        TxoSetAtAddress pq c          -> TxoSetAtResponse <$> ChainIndexEff.txoSetAtAddress pq c
+        GetTip                        -> GetTipResponse <$> ChainIndexEff.getTip
+        UnspentTxOutSetAtAddress pq c -> UnspentTxOutSetAtAddressResponse <$> ChainIndexEff.unspentTxOutSetAtAddress pq c
 
 handleOwnInstanceIdQueries ::
     forall effs a.

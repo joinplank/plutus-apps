@@ -35,6 +35,7 @@ module Plutus.Contract.Effects( -- TODO: Move to Requests.Internal
     _UtxoSetWithCurrency,
     _TxoSetAtAddress,
     _GetTip,
+    _UnspentTxOutSetAtAddress,
     -- * Plutus application backend response effect types
     PABResp(..),
     _AwaitSlotResp,
@@ -67,6 +68,7 @@ module Plutus.Contract.Effects( -- TODO: Move to Requests.Internal
     _TxIdsResponse,
     _TxoSetAtResponse,
     _GetTipResponse,
+    _UnspentTxOutSetAtAddressResponse,
     -- * Etc.
     matches,
     ChainIndexQuery(..),
@@ -96,7 +98,7 @@ import Ledger.TimeSlot (SlotConversionError)
 import Ledger.Tx (CardanoTx, ChainIndexTxOut, getCardanoTxId, onCardanoTx)
 import Plutus.ChainIndex (Page (pageItems), PageQuery)
 import Plutus.ChainIndex.Api (IsUtxoResponse (IsUtxoResponse), TxosResponse (TxosResponse),
-                              UtxosResponse (UtxosResponse))
+                              UnspentTxOutSetResponse (UnspentTxOutSetResponse), UtxosResponse (UtxosResponse))
 import Plutus.ChainIndex.Tx (ChainIndexTx (_citxTxId))
 import Plutus.ChainIndex.Types (Tip, TxOutStatus, TxStatus)
 import Prettyprinter (Pretty (pretty), hsep, indent, viaShow, vsep, (<+>))
@@ -206,18 +208,19 @@ matches a b = case (a, b) of
 
 chainIndexMatches :: ChainIndexQuery -> ChainIndexResponse -> Bool
 chainIndexMatches q r = case (q, r) of
-    (DatumFromHash{}, DatumHashResponse{})                   -> True
-    (ValidatorFromHash{}, ValidatorHashResponse{})           -> True
-    (MintingPolicyFromHash{}, MintingPolicyHashResponse{})   -> True
-    (StakeValidatorFromHash{}, StakeValidatorHashResponse{}) -> True
-    (RedeemerFromHash{}, RedeemerHashResponse{})             -> True
-    (UnspentTxOutFromRef{}, UnspentTxOutResponse{})          -> True
-    (UtxoSetMembership{}, UtxoSetMembershipResponse{})       -> True
-    (UtxoSetAtAddress{}, UtxoSetAtResponse{})                -> True
-    (UtxoSetWithCurrency{}, UtxoSetWithCurrencyResponse{})   -> True
-    (TxoSetAtAddress{}, TxoSetAtResponse{})                  -> True
-    (GetTip{}, GetTipResponse{})                             -> True
-    _                                                        -> False
+    (DatumFromHash{}, DatumHashResponse{})                           -> True
+    (ValidatorFromHash{}, ValidatorHashResponse{})                   -> True
+    (MintingPolicyFromHash{}, MintingPolicyHashResponse{})           -> True
+    (StakeValidatorFromHash{}, StakeValidatorHashResponse{})         -> True
+    (RedeemerFromHash{}, RedeemerHashResponse{})                     -> True
+    (UnspentTxOutFromRef{}, UnspentTxOutResponse{})                  -> True
+    (UtxoSetMembership{}, UtxoSetMembershipResponse{})               -> True
+    (UtxoSetAtAddress{}, UtxoSetAtResponse{})                        -> True
+    (UtxoSetWithCurrency{}, UtxoSetWithCurrencyResponse{})           -> True
+    (TxoSetAtAddress{}, TxoSetAtResponse{})                          -> True
+    (GetTip{}, GetTipResponse{})                                     -> True
+    (UnspentTxOutSetAtAddress{}, UnspentTxOutSetAtAddressResponse{}) -> True
+    _                                                                -> False
 
 -- | Represents all possible chain index queries. Each constructor contains the
 -- input(s) needed for the query. These possible queries correspond to the
@@ -234,22 +237,24 @@ data ChainIndexQuery =
   | UtxoSetWithCurrency (PageQuery TxOutRef) AssetClass
   | TxoSetAtAddress (PageQuery TxOutRef) Credential
   | GetTip
+  | UnspentTxOutSetAtAddress (PageQuery (TxOutRef, ChainIndexTxOut)) Credential
     deriving stock (Eq, Show, Generic)
     deriving anyclass (ToJSON, FromJSON, OpenApi.ToSchema)
 
 instance Pretty ChainIndexQuery where
     pretty = \case
-        DatumFromHash h            -> "requesting datum from hash" <+> pretty h
-        ValidatorFromHash h        -> "requesting validator from hash" <+> pretty h
-        MintingPolicyFromHash h    -> "requesting minting policy from hash" <+> pretty h
-        StakeValidatorFromHash h   -> "requesting stake validator from hash" <+> pretty h
-        RedeemerFromHash h         -> "requesting redeemer from hash" <+> pretty h
-        UnspentTxOutFromRef r      -> "requesting utxo from utxo reference" <+> pretty r
-        UtxoSetMembership txOutRef -> "whether tx output is part of the utxo set" <+> pretty txOutRef
-        UtxoSetAtAddress _ c       -> "requesting utxos located at addresses with the credential" <+> pretty c
-        UtxoSetWithCurrency _ ac   -> "requesting utxos containing the asset class" <+> pretty ac
-        TxoSetAtAddress _ c        -> "requesting txos located at addresses with the credential" <+> pretty c
-        GetTip                     -> "requesting the tip of the chain index"
+        DatumFromHash h              -> "requesting datum from hash" <+> pretty h
+        ValidatorFromHash h          -> "requesting validator from hash" <+> pretty h
+        MintingPolicyFromHash h      -> "requesting minting policy from hash" <+> pretty h
+        StakeValidatorFromHash h     -> "requesting stake validator from hash" <+> pretty h
+        RedeemerFromHash h           -> "requesting redeemer from hash" <+> pretty h
+        UnspentTxOutFromRef r        -> "requesting utxo from utxo reference" <+> pretty r
+        UtxoSetMembership txOutRef   -> "whether tx output is part of the utxo set" <+> pretty txOutRef
+        UtxoSetAtAddress _ c         -> "requesting utxos located at addresses with the credential" <+> pretty c
+        UtxoSetWithCurrency _ ac     -> "requesting utxos containing the asset class" <+> pretty ac
+        TxoSetAtAddress _ c          -> "requesting txos located at addresses with the credential" <+> pretty c
+        GetTip                       -> "requesting the tip of the chain index"
+        UnspentTxOutSetAtAddress _ c -> "requesting unspent tx out located at address with credential" <+> pretty c
 
 -- | Represents all possible responses to chain index queries. Each constructor
 -- contain the output resulting for the chain index query. These possible
@@ -268,6 +273,7 @@ data ChainIndexResponse =
   | TxIdsResponse [ChainIndexTx]
   | TxoSetAtResponse TxosResponse
   | GetTipResponse Tip
+  | UnspentTxOutSetAtAddressResponse UnspentTxOutSetResponse
     deriving stock (Eq, Show, Generic)
     deriving anyclass (ToJSON, FromJSON)
 
@@ -303,6 +309,12 @@ instance Pretty ChainIndexResponse where
             <+> "The txo refs are"
             <+> hsep (fmap pretty $ pageItems txOutRefPage)
         GetTipResponse tip -> "Chain index get tip response:" <+> pretty tip
+        UnspentTxOutSetAtAddressResponse (UnspentTxOutSetResponse tip utxoMapPage) ->
+              "Chain index unspentTxOutSetAtAddress response:"
+          <+> "Current tip is"
+          <+> pretty tip
+          <+> "and utxo map is"
+          <+> hsep (fmap pretty $ pageItems utxoMapPage)
 
 data BalanceTxResponse =
   BalanceTxFailed WalletAPIError

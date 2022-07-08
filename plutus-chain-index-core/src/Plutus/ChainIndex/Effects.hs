@@ -12,6 +12,7 @@ module Plutus.ChainIndex.Effects(
     , stakeValidatorFromHash
     , redeemerFromHash
     , unspentTxOutFromRef
+    , unspentTxOutSetAtAddress
     , utxoSetMembership
     , utxoSetAtAddress
     , utxoSetWithCurrency
@@ -32,7 +33,7 @@ import Ledger (AssetClass, Datum, DatumHash, MintingPolicy, MintingPolicyHash, R
                StakeValidatorHash, Validator, ValidatorHash)
 import Ledger.Credential (Credential)
 import Ledger.Tx (ChainIndexTxOut, TxOutRef)
-import Plutus.ChainIndex.Api (IsUtxoResponse, TxosResponse, UtxosResponse)
+import Plutus.ChainIndex.Api (IsUtxoResponse, TxosResponse, UnspentTxOutSetResponse, UtxosResponse)
 import Plutus.ChainIndex.Types (ChainSyncBlock, Diagnostics, Point, Tip)
 
 data ChainIndexQueryEffect r where
@@ -72,6 +73,10 @@ data ChainIndexQueryEffect r where
 
     -- | Get the tip of the chain index
     GetTip :: ChainIndexQueryEffect Tip
+
+    -- | Get the unspent txouts located at an address
+    -- This is to avoid multiple queries from chain-index when using utxosAt
+    UnspentTxOutSetAtAddress :: PageQuery (TxOutRef, ChainIndexTxOut) -> Credential -> ChainIndexQueryEffect UnspentTxOutSetResponse
 
 makeEffect ''ChainIndexQueryEffect
 

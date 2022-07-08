@@ -11,6 +11,7 @@ module Plutus.ChainIndex.Api
   , FullAPI
   , IsUtxoResponse(..)
   , SwaggerAPI
+  , UnspentTxOutSetResponse(..)
   , UtxoAtAddressRequest(..)
   , UtxosResponse(..)
   , UtxoWithCurrencyRequest(..)
@@ -139,6 +140,13 @@ data TxoAtAddressRequest = TxoAtAddressRequest
 -- | Response type for the txo-at-address endpoint.
 data TxosResponse = TxosResponse
     { paget :: Page TxOutRef
+    }
+    deriving (Show, Eq, Generic, FromJSON, ToJSON, OpenApi.ToSchema)
+
+-- | Response type for the unspentTxOutSetAtAddress enpoint.
+data UnspentTxOutSetResponse = UnspentTxOutSetResponse
+    { currentTip :: Tip
+    , pageu      :: Page (TxOutRef, ChainIndexTxOut)
     }
     deriving (Show, Eq, Generic, FromJSON, ToJSON, OpenApi.ToSchema)
 
