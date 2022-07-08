@@ -116,6 +116,15 @@ credentialToAddress c = case toCardanoAddress netId pAddress of
     netId :: NetworkId
     netId = fromNetworkMagic $ NetworkMagic {unNetworkMagic = 1097911063}
 
+utxoToRef :: AddressUtxo -> TxOutRef
+utxoToRef utxo = TxOutRef { txOutRefId=utxoToTxId utxo
+                          , txOutRefIdx=_addressUtxoOutputIndex utxo
+                          }
+
+utxoToTxId :: AddressUtxo -> Ledger.TxId
+utxoToTxId utxo =
+    Ledger.TxId $ toBuiltin $ fromJust $ decodeHex $ unTxHash $ _addressUtxoTxHash utxo
+
 amountsToValue :: [Blockfrost.Amount] -> Ledger.Value
 amountsToValue = foldr ((<>). blfAmountToValue) (singleton "" "" 0)
 

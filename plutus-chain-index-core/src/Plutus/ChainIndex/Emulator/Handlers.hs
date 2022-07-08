@@ -289,6 +289,7 @@ handleQuery = \case
             _            -> pure $ TxosResponse page
     GetTip ->
         gets (tip . utxoState . view utxoIndex)
+    UnspentTxOutSetAtAddress _ _ -> error "OPERATION NOT SUPPORTED ON CHAIN INDEX"
 
 appendBlocks ::
     forall effs.
