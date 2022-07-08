@@ -96,6 +96,10 @@ data ChainIndexQueryEffect r where
     -- | Get the tip of the chain index
     GetTip :: ChainIndexQueryEffect Tip
 
+    -- | Get the unspent txouts located at an address
+    -- This is to avoid multiple queries from chain-index when using utxosAt
+    UnspentTxOutSetAtAddress :: PageQuery (TxOutRef, ChainIndexTxOut) -> Credential -> ChainIndexQueryEffect UnspentTxOutSetResponse
+
 makeEffect ''ChainIndexQueryEffect
 
 data ChainIndexControlEffect r where
