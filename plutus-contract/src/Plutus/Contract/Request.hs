@@ -45,6 +45,7 @@ module Plutus.Contract.Request(
     , utxoRefsAt
     , utxoRefsWithCurrency
     , utxosAt
+    , unspentTxOutsAt
     , utxosTxOutTxFromTx
     , utxosTxOutTxAt
     , txsFromTxIds
@@ -120,7 +121,7 @@ import Data.Aeson.Types qualified as JSON
 import Data.Bifunctor (Bifunctor (..))
 import Data.Default (Default (def))
 import Data.List.NonEmpty (NonEmpty)
-import Data.Map (Map)
+import Data.Map (Map, fromList)
 import Data.Map qualified as Map
 import Data.Maybe (catMaybes, mapMaybe)
 import Data.Proxy (Proxy (Proxy))
@@ -570,6 +571,20 @@ utxosTxOutTxAt addr = do
               pure (Just (out, tx), Map.insert txid tx lookupTx)
             Nothing ->
               pure (Nothing, lookupTx)
+
+
+unspentTxOutsAt ::
+    forall w s e.
+    ( AsContractError e
+    )
+    => Address
+    -> Contract w s e (Map TxOutRef ChainIndexTxOut)
+unspentTxOutsAt addr = do
+    let pq = def
+    cir <- pabReq (ChainIndexQueryReq $ E.UnspentTxOutSetAtAddress pq $ addressCredential addr) E._ChainIndexQueryResp
+    case cir of
+        E.UnspentTxOutSetAtAddressResponse r -> pure $ fromList $ pageItems $ pageu $ r
+        r                                    -> throwError $ review _ChainIndexContractError ("UnspentTxOutResponse", r)
 
 
 -- | Get the unspent transaction outputs from a 'ChainIndexTx'.

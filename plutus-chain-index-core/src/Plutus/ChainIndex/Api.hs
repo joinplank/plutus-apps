@@ -14,6 +14,7 @@ module Plutus.ChainIndex.Api
   , FullAPI
   , IsUtxoResponse(..)
   , SwaggerAPI
+  , UnspentTxOutSetResponse(..)
   , UtxoAtAddressRequest(..)
   , UtxosResponse(..)
   , UtxoWithCurrencyRequest(..)
@@ -169,7 +170,6 @@ data TxosResponse = TxosResponse
     { paget :: Page TxOutRef
     }
     deriving (Show, Eq, Generic, FromJSON, ToJSON, OpenApi.ToSchema)
-
 
 data QueryAtAddressRequest = QueryAtAddressRequest
     { pageQuery  :: Maybe (PageQuery TxOutRef)
