@@ -38,6 +38,7 @@ module Plutus.Contract.Request(
     , utxoRefsAt
     , utxoRefsWithCurrency
     , utxosAt
+    , unspentTxOutsAt
     , utxosTxOutTxFromTx
     , txoRefsAt
     , getTip
@@ -99,7 +100,7 @@ import Data.Aeson.Types qualified as JSON
 import Data.Bifunctor (Bifunctor (..))
 import Data.Default (Default (def))
 import Data.List.NonEmpty (NonEmpty)
-import Data.Map (Map)
+import Data.Map (Map, fromList)
 import Data.Map qualified as Map
 import Data.Maybe (catMaybes, mapMaybe)
 import Data.Proxy (Proxy (Proxy))
@@ -132,7 +133,7 @@ import Wallet.Types (ContractInstanceId, EndpointDescription (EndpointDescriptio
                      EndpointValue (EndpointValue, unEndpointValue))
 
 import Plutus.ChainIndex (ChainIndexTx, Page (nextPageQuery, pageItems), PageQuery, txOutRefs)
-import Plutus.ChainIndex.Api (IsUtxoResponse, TxosResponse, UtxosResponse (page))
+import Plutus.ChainIndex.Api (IsUtxoResponse, TxosResponse, UnspentTxOutSetResponse (pageu), UtxosResponse (page))
 import Plutus.ChainIndex.Types (RollbackState (Unknown), Tip, TxOutStatus, TxStatus)
 import Plutus.Contract.Error (AsContractError (_ChainIndexContractError, _ConstraintResolutionContractError, _EndpointDecodeContractError, _ResumableContractError, _WalletContractError))
 import Plutus.Contract.Resumable (prompt)
@@ -399,6 +400,20 @@ utxosAt addr = do
                 $ mapMaybe (\(ref, txOut) -> fmap (ref,) txOut)
                 $ zip utxoRefs txOuts
       pure $ acc <> utxos
+
+unspentTxOutsAt ::
+    forall w s e.
+    ( AsContractError e
+    )
+    => Address
+    -> Contract w s e (Map TxOutRef ChainIndexTxOut)
+unspentTxOutsAt addr = do
+    let pq = def
+    cir <- pabReq (ChainIndexQueryReq $ E.UnspentTxOutSetAtAddress pq $ addressCredential addr) E._ChainIndexQueryResp
+    case cir of
+        E.UnspentTxOutSetAtAddressResponse r -> pure $ fromList $ pageItems $ pageu $ r
+        r                                    -> throwError $ review _ChainIndexContractError ("UnspentTxOutResponse", r)
+
 
 -- | Get the unspent transaction outputs from a 'ChainIndexTx'.
 utxosTxOutTxFromTx ::
