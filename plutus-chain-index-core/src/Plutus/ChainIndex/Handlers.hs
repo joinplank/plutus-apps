@@ -92,6 +92,7 @@ handleQuery = \case
       getUtxoSetWithCurrency pageQuery assetClass
     TxoSetAtAddress pageQuery cred -> getTxoSetAtAddress pageQuery cred
     GetTip -> getTip
+    UnspentTxOutSetAtAddress _ _ -> error "OPERATION NOT SUPPORTED ON CHAIN INDEX"
 
 getTip :: Member BeamEffect effs => Eff effs Tip
 getTip = fmap fromDbValue . selectOne . select $ limit_ 1 (orderBy_ (desc_ . _tipRowSlot) (all_ (tipRows db)))
