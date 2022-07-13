@@ -44,7 +44,6 @@ module Plutus.Contract.Request(
     , utxoRefsAt
     , utxoRefsWithCurrency
     , utxosAt
-    , unspentTxOutsAt
     , utxosTxOutTxFromTx
     , utxosTxOutTxAt
     , txsFromTxIds
@@ -519,6 +518,7 @@ queryUnspentTxOutsAt addr pq = do
     r                           -> throwError $ review _ChainIndexContractError ("UnspentTxOutAtResponse", r)
 
 -- | Get the unspent transaction outputs at an address.
+-- WARNING: A maximum of 100 utxos can be gathered
 utxosAt ::
     forall w s e.
     ( AsContractError e
