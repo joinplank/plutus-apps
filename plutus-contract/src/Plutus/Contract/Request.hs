@@ -45,7 +45,6 @@ module Plutus.Contract.Request(
     , utxoRefsAt
     , utxoRefsWithCurrency
     , utxosAt
-    , unspentTxOutsAt
     , utxosTxOutTxFromTx
     , utxosTxOutTxAt
     , txsFromTxIds
