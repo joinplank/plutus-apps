@@ -38,7 +38,6 @@ module Plutus.Contract.Request(
     , utxoRefsAt
     , utxoRefsWithCurrency
     , utxosAt
-    , unspentTxOutsAt
     , utxosTxOutTxFromTx
     , txoRefsAt
     , getTip
@@ -384,6 +383,7 @@ foldUtxoRefsAt f ini addr = go ini (Just def)
       go newAcc (nextPageQuery page)
 
 -- | Get the unspent transaction outputs at an address.
+-- WARNING: A maximum of 100 utxos can be gathered
 utxosAt ::
     forall w s e.
     ( AsContractError e
@@ -391,23 +391,6 @@ utxosAt ::
     => Address
     -> Contract w s e (Map TxOutRef ChainIndexTxOut)
 utxosAt addr = do
-  foldUtxoRefsAt f Map.empty addr
-  where
-    f acc page = do
-      let utxoRefs = pageItems page
-      txOuts <- traverse unspentTxOutFromRef utxoRefs
-      let utxos = Map.fromList
-                $ mapMaybe (\(ref, txOut) -> fmap (ref,) txOut)
-                $ zip utxoRefs txOuts
-      pure $ acc <> utxos
-
-unspentTxOutsAt ::
-    forall w s e.
-    ( AsContractError e
-    )
-    => Address
-    -> Contract w s e (Map TxOutRef ChainIndexTxOut)
-unspentTxOutsAt addr = do
     let pq = def
     cir <- pabReq (ChainIndexQueryReq $ E.UnspentTxOutSetAtAddress pq $ addressCredential addr) E._ChainIndexQueryResp
     case cir of
