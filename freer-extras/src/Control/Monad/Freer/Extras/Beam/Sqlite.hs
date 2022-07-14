@@ -5,8 +5,6 @@
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE GADTs                 #-}
-{-# LANGUAGE KindSignatures        #-}
-{-# LANGUAGE LambdaCase            #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE NumericUnderscores    #-}
 {-# LANGUAGE OverloadedStrings     #-}
@@ -74,9 +72,18 @@ runBeam trace action = do
           -- 'Database.SQLite.Simple.ErrorError' corresponds to an SQL error or
           -- missing database. When this exception is raised, we suppose it's
           -- because the another transaction was already running.
-          Left (Sqlite.SQLError Sqlite.ErrorError _ _) | retries > 0 -> do
+          Left e@(Sqlite.SQLError Sqlite.ErrorError _ _) | retries > 0 -> do
+              traceSql $ show e
               threadDelay 100_000
               loop conn (retries - 1)
+          Left e@(Sqlite.SQLError Sqlite.ErrorBusy _ _) | retries > 0 -> do
+            traceSql $ show e
+            threadDelay 100_000
+            loop conn (retries - 1)
+          Left e@(Sqlite.SQLError Sqlite.ErrorLocked _ _) | retries > 0 -> do
+            traceSql $ show e
+            threadDelay 100_000
+            loop conn (retries - 1)
           -- We handle and rethrow errors other than
           -- 'Database.SQLite.Simple.ErrorError'.
           Left e -> throw $ SqlError $ Text.pack $ show e
