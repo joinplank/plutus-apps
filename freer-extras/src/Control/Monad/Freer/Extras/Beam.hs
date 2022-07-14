@@ -1,6 +1,6 @@
 
 module Control.Monad.Freer.Extras.Beam (
-      module Control.Monad.Freer.Extras.Beam.Sqlite
+      module Control.Monad.Freer.Extras.Beam.Postgres
 ) where
 
-import Control.Monad.Freer.Extras.Beam.Sqlite
+import Control.Monad.Freer.Extras.Beam.Postgres
