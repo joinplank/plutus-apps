@@ -189,6 +189,27 @@ getUtxoSetAtAddress pageQuery cred = do
     tp           -> pure (UtxosResponse tp page)
 
 
+
+getTxOutRefsAtAddress ::
+    forall effs.
+    ( Member (State ChainIndexEmulatorState) effs
+    , Member (LogMsg ChainIndexLog) effs
+    ) => PageQuery TxOutRef
+    -> Credential
+    -> Eff effs UtxosResponse
+getTxOutRefsAtAddress pageQuery cred = do
+    state <- get
+    let outRefs = view (diskState . addressMap . at cred) state
+        utxo = view (utxoIndex . to utxoState) state
+        utxoRefs = Set.filter (flip TxUtxoBalance.isUnspentOutput utxo)
+                            (fromMaybe mempty outRefs)
+        page = pageOf pageQuery utxoRefs
+    case tip utxo of
+        TipAtGenesis -> do
+            logWarn TipIsGenesis
+            pure (UtxosResponse TipAtGenesis (pageOf pageQuery Set.empty))
+        tp           -> pure (UtxosResponse tp page)
+
 handleQuery ::
     forall effs.
     ( Member (State ChainIndexEmulatorState) effs
@@ -268,7 +289,6 @@ handleQuery = \case
             _            -> pure $ TxosResponse page
     GetTip ->
         gets (tip . utxoState . view utxoIndex)
-    UnspentTxOutSetAtAddress _ _ -> error "OPERATION NOT SUPPORTED ON CHAIN INDEX"
 
 appendBlocks ::
     forall effs.
