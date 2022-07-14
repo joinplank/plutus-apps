@@ -31,6 +31,7 @@ library
   exposed-modules:
         Control.Monad.Freer.Extras
         Control.Monad.Freer.Extras.Beam
+        Control.Monad.Freer.Extras.Beam.Sqlite
         Control.Monad.Freer.Extras.Log
         Control.Monad.Freer.Extras.Modify
         Control.Monad.Freer.Extras.Pagination
