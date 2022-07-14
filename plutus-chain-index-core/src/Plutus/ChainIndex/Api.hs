@@ -11,7 +11,6 @@ module Plutus.ChainIndex.Api
   , FullAPI
   , IsUtxoResponse(..)
   , SwaggerAPI
-  , UnspentTxOutSetResponse(..)
   , UtxoAtAddressRequest(..)
   , UtxosResponse(..)
   , UtxoWithCurrencyRequest(..)
