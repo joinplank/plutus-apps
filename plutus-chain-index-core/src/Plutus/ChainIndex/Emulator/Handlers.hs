@@ -25,9 +25,9 @@ import Control.Monad (foldM)
 import Control.Monad.Freer (Eff, Member, type (~>))
 import Control.Monad.Freer.Error (Error, throwError)
 import Control.Monad.Freer.Extras.Log (LogMsg, logDebug, logError, logWarn)
-import Control.Monad.Freer.Extras.Pagination (pageOf)
+import Control.Monad.Freer.Extras.Pagination (Page (..), PageQuery (..), pageOf)
 import Control.Monad.Freer.State (State, get, gets, modify, put)
-import Data.Maybe (catMaybes, fromMaybe)
+import Data.Maybe (catMaybes, fromJust, fromMaybe)
 import Data.Semigroup.Generic (GenericSemigroupMonoid (..))
 import Data.Set qualified as Set
 import GHC.Generics (Generic)
@@ -37,7 +37,7 @@ import Ledger (Address (addressCredential), ChainIndexTxOut (..), MintingPolicy 
                Validator (Validator), ValidatorHash (ValidatorHash), txOutDatumHash, txOutValue)
 import Ledger.Scripts (ScriptHash (ScriptHash))
 import Plutus.ChainIndex.Api (IsUtxoResponse (IsUtxoResponse), TxosResponse (TxosResponse),
-                              UtxosResponse (UtxosResponse))
+                              UnspentTxOutSetResponse (..), UtxosResponse (UtxosResponse, currentTip, page))
 import Plutus.ChainIndex.ChainIndexError (ChainIndexError (..))
 import Plutus.ChainIndex.ChainIndexLog (ChainIndexLog (..))
 import Plutus.ChainIndex.Effects (ChainIndexControlEffect (..), ChainIndexQueryEffect (..))
@@ -105,6 +105,27 @@ getUtxoutFromRef ref@TxOutRef{txOutRefId, txOutRefIdx} = do
               let d = maybe (Left dh) Right $ preview (dataMap . ix dh) ds
               pure $ Just $ ScriptChainIndexTxOut (txOutAddress txout) v d (txOutValue txout)
 
+
+getTxOutRefsAtAddress ::
+    forall effs.
+    ( Member (State ChainIndexEmulatorState) effs
+    , Member (LogMsg ChainIndexLog) effs
+    ) => PageQuery TxOutRef
+    -> Credential
+    -> Eff effs UtxosResponse
+getTxOutRefsAtAddress pageQuery cred = do
+    state <- get
+    let outRefs = view (diskState . addressMap . at cred) state
+        utxo = view (utxoIndex . to utxoState) state
+        utxoRefs = Set.filter (flip TxUtxoBalance.isUnspentOutput utxo)
+                            (fromMaybe mempty outRefs)
+        page = pageOf pageQuery utxoRefs
+    case tip utxo of
+        TipAtGenesis -> do
+            logWarn TipIsGenesis
+            pure (UtxosResponse TipAtGenesis (pageOf pageQuery Set.empty))
+        tp           -> pure (UtxosResponse tp page)
+
 handleQuery ::
     forall effs.
     ( Member (State ChainIndexEmulatorState) effs
@@ -127,18 +148,7 @@ handleQuery = \case
         case tip utxo of
             TipAtGenesis -> throwError QueryFailedNoTip
             tp           -> pure (IsUtxoResponse tp (TxUtxoBalance.isUnspentOutput r utxo))
-    UtxoSetAtAddress pageQuery cred -> do
-        state <- get
-        let outRefs = view (diskState . addressMap . at cred) state
-            utxo = view (utxoIndex . to utxoState) state
-            utxoRefs = Set.filter (flip TxUtxoBalance.isUnspentOutput utxo)
-                                  (fromMaybe mempty outRefs)
-            page = pageOf pageQuery utxoRefs
-        case tip utxo of
-            TipAtGenesis -> do
-                logWarn TipIsGenesis
-                pure (UtxosResponse TipAtGenesis (pageOf pageQuery Set.empty))
-            tp           -> pure (UtxosResponse tp page)
+    UtxoSetAtAddress pageQuery cred -> getTxOutRefsAtAddress pageQuery cred
     UtxoSetWithCurrency pageQuery assetClass -> do
         state <- get
         let outRefs = view (diskState . assetClassMap . at assetClass) state
@@ -163,7 +173,20 @@ handleQuery = \case
             _            -> pure $ TxosResponse page
     GetTip ->
         gets (tip . utxoState . view utxoIndex)
-    UnspentTxOutSetAtAddress _ _ -> error "OPERATION NOT SUPPORTED ON CHAIN INDEX"
+    UnspentTxOutSetAtAddress pageQuery cred -> do
+        let lastItem = maybe Nothing (Just . fst) (pageQueryLastItem pageQuery)
+            nPageQuery = PageQuery { pageQuerySize = pageQuerySize pageQuery
+                                   , pageQueryLastItem = lastItem}
+        utxoResponse <- getTxOutRefsAtAddress nPageQuery cred
+        let txOutRefs = pageItems $ page utxoResponse
+        utxosInfo <- sequence $ map getUtxoutFromRef txOutRefs
+        let result = map ((<$>) fromJust) $ zip txOutRefs utxosInfo
+            uPage = Page { currentPageQuery = pageQuery
+                         , nextPageQuery    = Nothing
+                         , pageItems        = result
+                         }
+            cTip = currentTip utxoResponse
+        pure $ UnspentTxOutSetResponse { currentTipu = cTip, pageu = uPage }
 
 appendBlocks ::
     forall effs.

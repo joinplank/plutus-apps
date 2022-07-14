@@ -145,8 +145,8 @@ data TxosResponse = TxosResponse
 
 -- | Response type for the unspentTxOutSetAtAddress enpoint.
 data UnspentTxOutSetResponse = UnspentTxOutSetResponse
-    { currentTip :: Tip
-    , pageu      :: Page (TxOutRef, ChainIndexTxOut)
+    { currentTipu :: Tip
+    , pageu       :: Page (TxOutRef, ChainIndexTxOut)
     }
     deriving (Show, Eq, Generic, FromJSON, ToJSON, OpenApi.ToSchema)
 
