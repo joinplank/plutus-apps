@@ -572,7 +572,6 @@ utxosTxOutTxAt addr = do
             Nothing ->
               pure (Nothing, lookupTx)
 
-
 unspentTxOutsAt ::
     forall w s e.
     ( AsContractError e
