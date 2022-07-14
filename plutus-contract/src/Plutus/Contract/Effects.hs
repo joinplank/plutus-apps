@@ -80,7 +80,6 @@ module Plutus.Contract.Effects( -- TODO: Move to Requests.Internal
     _TxIdsResponse,
     _TxoSetAtResponse,
     _GetTipResponse,
-    _UnspentTxOutSetAtAddressResponse,
     -- * Etc.
     matches,
     ChainIndexQuery(..),
@@ -281,7 +280,7 @@ data ChainIndexQuery =
   | TxsFromTxIds [TxId]
   | TxoSetAtAddress (PageQuery TxOutRef) Credential
   | GetTip
-  | UnspentTxOutSetAtAddress (PageQuery (TxOutRef, ChainIndexTxOut)) Credential
+--  | UnspentTxOutSetAtAddress (PageQuery (TxOutRef, ChainIndexTxOut)) Credential
     deriving stock (Eq, Show, Generic)
     deriving anyclass (ToJSON, FromJSON, OpenApi.ToSchema)
 
@@ -324,7 +323,6 @@ data ChainIndexResponse =
   | TxIdsResponse [ChainIndexTx]
   | TxoSetAtResponse TxosResponse
   | GetTipResponse Tip
-  | UnspentTxOutSetAtAddressResponse UnspentTxOutSetResponse
     deriving stock (Eq, Show, Generic)
     deriving anyclass (ToJSON, FromJSON)
 
@@ -365,12 +363,6 @@ instance Pretty ChainIndexResponse where
             <+> "The txo refs are"
             <+> hsep (fmap pretty $ pageItems txOutRefPage)
         GetTipResponse tip -> "Chain index get tip response:" <+> pretty tip
-        UnspentTxOutSetAtAddressResponse (UnspentTxOutSetResponse tip utxoMapPage) ->
-              "Chain index unspentTxOutSetAtAddress response:"
-          <+> "Current tip is"
-          <+> pretty tip
-          <+> "and utxo map is"
-          <+> hsep (fmap pretty $ pageItems utxoMapPage)
 
 data BalanceTxResponse =
   BalanceTxFailed WalletAPIError
