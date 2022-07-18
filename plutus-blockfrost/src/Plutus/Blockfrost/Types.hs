@@ -8,6 +8,7 @@ import GHC.Generics (Generic)
 
 import Cardano.Api (NetworkId)
 
+
 newtype BlockfrostConfig =
     BlockfrostConfig {
       -- | Path to the file containing the token
