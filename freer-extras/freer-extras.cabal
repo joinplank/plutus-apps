@@ -38,6 +38,8 @@ library
         Control.Monad.Freer.Extras.Pagination
         Control.Monad.Freer.Extras.State
         Control.Monad.Freer.Extras.Stream
+  other-modules:
+        Control.Monad.Freer.Extras.Beam.Common
   build-depends:
         aeson -any,
         base >=4.7 && <5,
