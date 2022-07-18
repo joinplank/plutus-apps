@@ -26,13 +26,13 @@ import Control.Monad.Freer (Eff, Member, type (~>))
 import Control.Monad.Freer.Error (Error, throwError)
 import Control.Monad.Freer.Extras.Beam (BeamEffect (..), BeamableSqlite, combined, selectList, selectOne, selectPage)
 import Control.Monad.Freer.Extras.Log (LogMsg, logDebug, logError, logWarn)
-import Control.Monad.Freer.Extras.Pagination (Page (Page), PageQuery (..))
+import Control.Monad.Freer.Extras.Pagination (Page (..), PageQuery (..))
 import Control.Monad.Freer.Reader (Reader, ask)
 import Control.Monad.Freer.State (State, get, gets, put)
 import Data.ByteString (ByteString)
 import Data.FingerTree qualified as FT
 import Data.Map qualified as Map
-import Data.Maybe (catMaybes, fromMaybe, mapMaybe)
+import Data.Maybe (catMaybes, fromJust, fromMaybe, mapMaybe)
 import Data.Proxy (Proxy (..))
 import Data.Set qualified as Set
 import Data.Word (Word64)
@@ -46,7 +46,7 @@ import Database.Beam.Sqlite (Sqlite)
 import Ledger (Address (..), ChainIndexTxOut (..), Datum, DatumHash (..), TxOut (..), TxOutRef (..), fromTxOut)
 import Ledger.Value (AssetClass (AssetClass), flattenValue)
 import Plutus.ChainIndex.Api (IsUtxoResponse (IsUtxoResponse), TxosResponse (TxosResponse),
-                              UtxosResponse (UtxosResponse))
+                              UnspentTxOutSetResponse (..), UtxosResponse (..))
 import Plutus.ChainIndex.ChainIndexError (ChainIndexError (..))
 import Plutus.ChainIndex.ChainIndexLog (ChainIndexLog (..))
 import Plutus.ChainIndex.Compatibility (toCardanoPoint)
@@ -92,7 +92,20 @@ handleQuery = \case
       getUtxoSetWithCurrency pageQuery assetClass
     TxoSetAtAddress pageQuery cred -> getTxoSetAtAddress pageQuery cred
     GetTip -> getTip
-    UnspentTxOutSetAtAddress _ _ -> error "OPERATION NOT SUPPORTED ON CHAIN INDEX"
+    UnspentTxOutSetAtAddress pageQuery cred -> do
+        let lastItem = maybe Nothing (Just . fst) (pageQueryLastItem pageQuery)
+            nPageQuery = PageQuery { pageQuerySize = pageQuerySize pageQuery
+                                   , pageQueryLastItem = lastItem}
+        utxoResponse <- getUtxoSetAtAddress nPageQuery cred
+        let txOutRefs = pageItems $ page utxoResponse
+        utxosInfo <- sequence $ map getUtxoutFromRef txOutRefs
+        let result = map ((<$>) fromJust) $ zip txOutRefs utxosInfo
+            uPage = Page { currentPageQuery = pageQuery
+                         , nextPageQuery    = Nothing
+                         , pageItems        = result
+                         }
+            cTip = currentTip utxoResponse
+        pure $ UnspentTxOutSetResponse { currentTipu = cTip, pageu = uPage }
 
 getTip :: Member BeamEffect effs => Eff effs Tip
 getTip = fmap fromDbValue . selectOne . select $ limit_ 1 (orderBy_ (desc_ . _tipRowSlot) (all_ (tipRows db)))

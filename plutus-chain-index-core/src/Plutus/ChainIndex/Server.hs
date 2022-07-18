@@ -23,6 +23,7 @@ import Data.Text.Encoding qualified as Text
 import Network.Wai.Handler.Warp qualified as Warp
 import Plutus.ChainIndex (RunRequirements, runChainIndexEffects)
 import Plutus.ChainIndex.Api (API, FromHashAPI, FullAPI, TxoAtAddressRequest (TxoAtAddressRequest),
+                              UnspentTxOutsAtAddressRequest (UnspentTxOutsAtAddressRequest),
                               UtxoAtAddressRequest (UtxoAtAddressRequest),
                               UtxoWithCurrencyRequest (UtxoWithCurrencyRequest), swagger)
 import Plutus.ChainIndex.Effects (ChainIndexControlEffect, ChainIndexQueryEffect)
@@ -66,6 +67,7 @@ serveChainIndex =
     :<|> (\(UtxoAtAddressRequest pq c) -> E.utxoSetAtAddress (fromMaybe def pq) c)
     :<|> (\(UtxoWithCurrencyRequest pq c) -> E.utxoSetWithCurrency (fromMaybe def pq) c)
     :<|> (\(TxoAtAddressRequest pq c) -> E.txoSetAtAddress (fromMaybe def pq) c)
+    :<|> (\(UnspentTxOutsAtAddressRequest pq c) -> E.unspentTxOutSetAtAddress (fromMaybe def pq) c)
     :<|> E.getTip
     :<|> E.collectGarbage *> pure NoContent
     :<|> E.getDiagnostics
