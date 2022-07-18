@@ -8,8 +8,11 @@ import GHC.Generics (Generic)
 
 import Cardano.Api (NetworkId)
 
+
 newtype BlockfrostConfig =
-    BlockfrostConfig { bfTokenPath :: FilePath }
+    BlockfrostConfig {
+      -- | Path to the file containing the token
+      bfTokenPath :: FilePath }
     deriving stock (Show, Eq, Generic)
     deriving anyclass (FromJSON, ToJSON)
 
