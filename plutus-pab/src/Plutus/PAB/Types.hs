@@ -183,7 +183,7 @@ instance ToJSON Config where
         , "pabWebserverConfig" .= pabWebserverConfig
         , "requestProcessingConfig" .= requestProcessingConfig
         , "developmentOptions" .= developmentOptions
-        ] `mergeObjects` (toJSON chainQueryConfig)
+        ] `mergeObjects` toJSON chainQueryConfig
 
 mergeObjects :: Value -> Value -> Value
 mergeObjects (Object o1) (Object o2) = Object $ HML.union o1 o2

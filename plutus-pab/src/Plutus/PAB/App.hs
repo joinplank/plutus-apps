@@ -54,6 +54,7 @@ import Data.Aeson (FromJSON, ToJSON, eitherDecode)
 import Data.ByteString.Lazy qualified as BSL
 import Data.Coerce (coerce)
 import Data.Default (def)
+import Data.Maybe (fromJust)
 import Data.Pool (Pool)
 import Data.Pool qualified as Pool
 import Data.Text (Text, pack, unpack)
