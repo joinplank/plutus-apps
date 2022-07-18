@@ -93,13 +93,13 @@ handleQuery = \case
     TxoSetAtAddress pageQuery cred -> getTxoSetAtAddress pageQuery cred
     GetTip -> getTip
     UnspentTxOutSetAtAddress pageQuery cred -> do
-        let lastItem = maybe Nothing (Just . fst) (pageQueryLastItem pageQuery)
+        let lastItem = (Just . fst) =<< pageQueryLastItem pageQuery
             nPageQuery = PageQuery { pageQuerySize = pageQuerySize pageQuery
                                    , pageQueryLastItem = lastItem}
         utxoResponse <- getUtxoSetAtAddress nPageQuery cred
         let txRefs = pageItems $ page utxoResponse
-        utxosInfo <- sequence $ map getUtxoutFromRef txRefs
-        let result = map ((<$>) fromJust) $ zip txRefs utxosInfo
+        utxosInfo <- mapM getUtxoutFromRef txRefs
+        let result = zipWith (curry ((<$>) fromJust)) txRefs utxosInfo
             uPage = Page { currentPageQuery = pageQuery
                          , nextPageQuery    = Nothing
                          , pageItems        = result
@@ -311,7 +311,7 @@ handleControl = \case
         newState <- restoreStateFromDb
         put newState
     CollectGarbage -> do
-        combined $
+        combined
             [ DeleteRows $ truncateTable (datumRows db)
             , DeleteRows $ truncateTable (scriptRows db)
             , DeleteRows $ truncateTable (redeemerRows db)
