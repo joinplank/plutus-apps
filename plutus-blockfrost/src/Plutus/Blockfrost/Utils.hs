@@ -113,9 +113,6 @@ credentialToAddress c = case toCardanoAddress netId pAddress of
       PubKeyCredential pkh     -> LA.pubKeyHashAddress pkh
       ScriptCredential valHash -> LA.scriptHashAddress valHash
 
-    netId :: NetworkId
-    netId = fromNetworkMagic $ NetworkMagic {unNetworkMagic = 1097911063}
-
 utxoToRef :: AddressUtxo -> TxOutRef
 utxoToRef utxo = TxOutRef { txOutRefId=utxoToTxId utxo
                           , txOutRefIdx=_addressUtxoOutputIndex utxo
