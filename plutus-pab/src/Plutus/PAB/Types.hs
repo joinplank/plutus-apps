@@ -175,7 +175,6 @@ getBlockfrostEnv :: ChainQueryEnv -> Blockfrost.BlockfrostEnv
 getBlockfrostEnv (BlockfrostEnv env) = env
 getBlockfrostEnv (ChainIndexEnv _)   = error "Can't get BlockfrostEnv from ChainIndexEnv"
 
-
 data Config =
     Config
         { dbConfig                :: DbConfig
