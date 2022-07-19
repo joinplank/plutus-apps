@@ -5,13 +5,8 @@ module Plutus.Blockfrost.Types where
 
 import Data.Aeson (FromJSON, ToJSON)
 import GHC.Generics (Generic)
-import System.FilePath
 
 import Cardano.Api (NetworkId)
-
-
-import Cardano.Api (NetworkId)
-
 
 newtype BlockfrostConfig =
     BlockfrostConfig {
