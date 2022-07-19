@@ -84,7 +84,7 @@ import Plutus.PAB.Timeout (Timeout (Timeout))
 import Plutus.PAB.Types (ChainQueryConfig (..), Config (Config), DbConfig (..),
                          DevelopmentOptions (DevelopmentOptions, pabResumeFrom, pabRollbackHistory),
                          PABError (BeamEffectError, ChainIndexError, NodeClientError, RemoteWalletWithMockNodeError, WalletClientError, WalletError),
-                         WebserverConfig (WebserverConfig), chainIndexConfig, dbConfig, developmentOptions,
+                         WebserverConfig (WebserverConfig), chainQueryConfig, dbConfig, developmentOptions,
                          endpointTimeout, nodeServerConfig, pabWebserverConfig, walletServerConfig)
 import Servant.Client (ClientEnv, ClientError, mkClientEnv)
 import Wallet.API (NodeClientEffect)
@@ -182,7 +182,7 @@ appEffectHandlers storageBackend config trace BuiltinHandler{contractHandler} =
             -- handle 'ChainIndexEffect'
             . flip handleError (throwError . ChainIndexError)
             . interpret (Core.handleUserEnvReader @(Builtin a) @(AppEnv a))
-            . (case chainIndexConfig config of
+            . (case chainQueryConfig config of
                 ChainIndexConfig _ -> reinterpret (Core.handleMappedReader @(AppEnv a) @ClientEnv (fromJust . chainIndexEnv))
                                       . reinterpret2 (ChainIndex.handleChainIndexClient @IO)
                 BlockfrostConfig _ -> reinterpret (Core.handleMappedReader @(AppEnv a) @BlockfrostEnv (fromJust . blockfrostEnv))
@@ -263,7 +263,7 @@ mkEnv :: Trace IO (PABLogMsg (Builtin a)) -> Config -> IO (AppEnv a)
 mkEnv appTrace appConfig@Config { dbConfig
              , nodeServerConfig = PABServerConfig{pscBaseUrl, pscSocketPath, pscProtocolParametersJsonPath, pscNodeMode, pscNetworkId}
              , walletServerConfig
-             , chainIndexConfig
+             , chainQueryConfig
              } = do
     walletClientEnv <- maybe (pure Nothing) (fmap Just . clientEnv) $ preview Wallet._LocalWalletConfig walletServerConfig
     nodeClientEnv <- clientEnv pscBaseUrl
@@ -295,12 +295,12 @@ mkEnv appTrace appConfig@Config { dbConfig
         Right params -> pure params
 
     mkChainIndexEnv :: IO (Maybe ClientEnv)
-    mkChainIndexEnv = case chainIndexConfig of
+    mkChainIndexEnv = case chainQueryConfig of
       ChainIndexConfig config -> Just <$> clientEnv (ChainIndex.ciBaseUrl config)
       BlockfrostConfig _      -> return Nothing
 
     mkBlockfrostEnv :: IO (Maybe BlockfrostEnv)
-    mkBlockfrostEnv = case chainIndexConfig of
+    mkBlockfrostEnv = case chainQueryConfig of
       ChainIndexConfig _ -> return Nothing
       BlockfrostConfig config -> return $ Just $ BlockfrostEnv { envBfTokenPath = bfTokenPath config
                                                         , envNetworkId = unNetworkIdWrapper pscNetworkId}
