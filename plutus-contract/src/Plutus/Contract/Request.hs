@@ -120,8 +120,9 @@ import Data.Aeson.Types qualified as JSON
 import Data.Bifunctor (Bifunctor (..))
 import Data.Default (Default (def))
 import Data.List.NonEmpty (NonEmpty)
-import Data.Map (Map, fromList)
-import Data.Maybe (catMaybes)
+import Data.Map (Map)
+import Data.Map qualified as Map
+import Data.Maybe (catMaybes, mapMaybe)
 import Data.Proxy (Proxy (Proxy))
 import Data.Row (AllUniqueLabels, HasType, KnownSymbol, type (.==))
 import Data.Text qualified as Text
