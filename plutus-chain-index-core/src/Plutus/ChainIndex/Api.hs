@@ -12,6 +12,7 @@ module Plutus.ChainIndex.Api
   , IsUtxoResponse(..)
   , SwaggerAPI
   , UnspentTxOutSetResponse(..)
+  , UnspentTxOutsAtAddressRequest(..)
   , UtxoAtAddressRequest(..)
   , UtxosResponse(..)
   , UtxoWithCurrencyRequest(..)
@@ -93,6 +94,12 @@ data UtxoAtAddressRequest = UtxoAtAddressRequest
     }
     deriving (Show, Eq, Generic, FromJSON, ToJSON, OpenApi.ToSchema)
 
+data UnspentTxOutsAtAddressRequest = UnspentTxOutsAtAddressRequest
+    { pageQuery  :: Maybe (PageQuery (TxOutRef, ChainIndexTxOut))
+    , credential :: Credential
+    }
+    deriving (Show, Eq, Generic, FromJSON, ToJSON, OpenApi.ToSchema)
+
 -- | See the comment on 'UtxoAtAddressRequest'.
 --
 -- The difference is using @currency@ field instead of @credential@.
@@ -158,6 +165,7 @@ type API
     :<|> "utxo-at-address" :> Description "Get all UTxOs at an address." :> ReqBody '[JSON] UtxoAtAddressRequest :> Post '[JSON] UtxosResponse
     :<|> "utxo-with-currency" :> Description "Get all UTxOs with a currency." :> ReqBody '[JSON] UtxoWithCurrencyRequest :> Post '[JSON] UtxosResponse
     :<|> "txo-at-address" :> Description "Get TxOs at an address." :> ReqBody '[JSON] TxoAtAddressRequest :> Post '[JSON] TxosResponse
+    :<|> "unspent-tx-outs-at-address" :> Description "Get all unspent putputs at an address" :> ReqBody '[JSON] UnspentTxOutsAtAddressRequest :> Post '[JSON] UnspentTxOutSetResponse
     :<|> "tip" :> Description "Get the current synced tip." :> Get '[JSON] Tip
     :<|> "collect-garbage" :> Description "Collect chain index garbage to free up space." :> Put '[JSON] NoContent
     :<|> "diagnostics" :> Description "Get the current stats of the chain index." :> Get '[JSON] Diagnostics
