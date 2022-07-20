@@ -97,9 +97,9 @@ handleQuery = \case
             nPageQuery = PageQuery { pageQuerySize = pageQuerySize pageQuery
                                    , pageQueryLastItem = lastItem}
         utxoResponse <- getUtxoSetAtAddress nPageQuery cred
-        let txOutRefs = pageItems $ page utxoResponse
-        utxosInfo <- sequence $ map getUtxoutFromRef txOutRefs
-        let result = map ((<$>) fromJust) $ zip txOutRefs utxosInfo
+        let txRefs = pageItems $ page utxoResponse
+        utxosInfo <- sequence $ map getUtxoutFromRef txRefs
+        let result = map ((<$>) fromJust) $ zip txRefs utxosInfo
             uPage = Page { currentPageQuery = pageQuery
                          , nextPageQuery    = Nothing
                          , pageItems        = result

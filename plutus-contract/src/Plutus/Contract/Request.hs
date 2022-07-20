@@ -100,8 +100,7 @@ import Data.Bifunctor (Bifunctor (..))
 import Data.Default (Default (def))
 import Data.List.NonEmpty (NonEmpty)
 import Data.Map (Map, fromList)
-import Data.Map qualified as Map
-import Data.Maybe (catMaybes, mapMaybe)
+import Data.Maybe (catMaybes)
 import Data.Proxy (Proxy (Proxy))
 import Data.Row (AllUniqueLabels, HasType, KnownSymbol, type (.==))
 import Data.Text qualified as Text
@@ -363,24 +362,6 @@ utxoRefsWithCurrency pq assetClass = do
   case cir of
     E.UtxoSetWithCurrencyResponse r -> pure r
     r                               -> throwError $ review _ChainIndexContractError ("UtxoSetWithCurrencyResponse", r)
-
--- | Fold through each 'Page's of unspent 'TxOutRef's at a given 'Address', and
--- accumulate the result.
-foldUtxoRefsAt ::
-    forall w s e a.
-    ( AsContractError e
-    )
-    => (a -> Page TxOutRef -> Contract w s e a) -- ^ Accumulator function
-    -> a -- ^ Initial value
-    -> Address -- ^ Address which contain the UTXOs
-    -> Contract w s e a
-foldUtxoRefsAt f ini addr = go ini (Just def)
-  where
-    go acc Nothing = pure acc
-    go acc (Just pq) = do
-      page <- page <$> utxoRefsAt pq addr
-      newAcc <- f acc page
-      go newAcc (nextPageQuery page)
 
 -- | Get the unspent transaction outputs at an address.
 -- WARNING: A maximum of 100 utxos can be gathered
