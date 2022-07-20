@@ -62,7 +62,6 @@ import Database.Beam.Postgres qualified as Postgres
 import Database.Beam.Postgres.Migrate qualified as Postgres
 import Database.Beam.Sqlite qualified as Sqlite
 import Database.Beam.Sqlite.Migrate qualified as Sqlite
-import Database.PostgreSQL.Simple qualified as Postgres
 import Database.SQLite.Simple qualified as Sqlite
 import Network.HTTP.Client (ManagerSettings (managerResponseTimeout), managerModifyRequest, newManager,
                             responseTimeoutMicro, setRequestIgnoreStatus)
@@ -361,7 +360,7 @@ migrateSqlite config trace = do
 
 runBeamMigrationSqlite
   :: Trace IO (PABLogMsg (Builtin a))
-  -> Postgres.Connection
+  -> Sqlite.Connection
   -> IO ()
 runBeamMigrationSqlite trace conn = Sqlite.runBeamSqliteDebug (logDebugString trace . pack) conn $ do
   autoMigrate Sqlite.migrationBackend checkedSqliteDb
@@ -376,10 +375,6 @@ dbConnectSqlite Sqlite.DbConfig {dbConfigFile, dbConfigPoolSize} trace = do
     }
   logDebugString trace $ "Connecting to DB: " <> dbConfigFile
   return pool
--- do
---   pool <- Pool.createPool (Sqlite.open $ unpack dbConfigFile) Sqlite.close dbConfigPoolSize 5_000_000 5
---   logDebugString trace $ "Connecting to DB: " <> dbConfigFile
---   return pool
 
 handleContractDefinition ::
   forall a effs. HasDefinitions a
