@@ -14,4 +14,5 @@ newtype BlockfrostConfig =
     deriving anyclass (FromJSON, ToJSON)
 
 data BlockfrostEnv = BlockfrostEnv { envBfTokenPath :: FilePath
-                                   , envNetworkId   :: NetworkId }
+                                   , envNetworkId   :: NetworkId
+                                   }
