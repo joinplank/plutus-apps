@@ -72,8 +72,7 @@ import Plutus.PAB.Run.Command (ConfigCommand (Migrate, PABWebserver))
 import Plutus.PAB.Run.CommandParser (AppOpts (AppOpts, cmd, configPath, logConfigPath, minLogLevel, resumeFrom, rollbackHistory, runEkgServer, storageBackend))
 import Plutus.PAB.Run.CommandParser qualified as PAB.Command
 import Plutus.PAB.Types (ChainQueryConfig (ChainIndexConfig),
-                         Config (chainQueryConfig, dbConfig, nodeServerConfig, walletServerConfig),
-                         DbConfig (dbConfigFile))
+                         Config (chainQueryConfig, dbConfig, nodeServerConfig, walletServerConfig))
 import Plutus.PAB.Types qualified as PAB.Config
 import Prettyprinter (Pretty)
 import Servant qualified
@@ -245,13 +244,13 @@ launchPAB
     -> RunningNode -- ^ Socket path
     -> ChainIndexPort -- ^ Port of the chain index
     -> IO ()
-launchPAB userContractHandler passPhrase dir walletUrl (RunningNode socketPath _block0 (_gp, _vData)) (ChainIndexPort chainIndexPort) = do
+launchPAB userContractHandler passPhrase _ walletUrl (RunningNode socketPath _block0 (_gp, _vData)) (ChainIndexPort chainIndexPort) = do
     let opts = AppOpts{minLogLevel = Nothing, logConfigPath = Nothing, configPath = Nothing, rollbackHistory = Nothing, resumeFrom = PointAtGenesis, runEkgServer = False, storageBackend = BeamSqliteBackend, cmd = PABWebserver, PAB.Command.passphrase = Just passPhrase}
         networkID = NetworkIdWrapper CAPI.Mainnet
         config =
             PAB.Config.defaultConfig
                 { nodeServerConfig = def{pscSocketPath=nodeSocketFile socketPath,pscNodeMode=AlonzoNode,pscNetworkId=networkID}
-                , dbConfig = def{dbConfigFile = T.pack (dir </> "plutus-pab.db")}
+                , dbConfig = def
                 , chainQueryConfig = ChainIndexConfig def{PAB.CI.ciBaseUrl = PAB.CI.ChainIndexUrl $ BaseUrl Http "localhost" chainIndexPort ""}
                 , walletServerConfig = set (Wallet.Config.walletSettingsL . Wallet.Config.baseUrlL) (WalletUrl walletUrl) def
                 }

@@ -54,13 +54,17 @@ import Data.Aeson (FromJSON, ToJSON, eitherDecode)
 import Data.ByteString.Lazy qualified as BSL
 import Data.Coerce (coerce)
 import Data.Default (def)
+import Data.Maybe (fromJust)
 import Data.Pool (Pool)
 import Data.Pool qualified as Pool
 import Data.Text (Text, pack, unpack)
 import Data.Typeable (Typeable)
 import Database.Beam.Migrate.Simple (autoMigrate)
+import Database.Beam.Postgres qualified as Postgres
+import Database.Beam.Postgres.Migrate qualified as Postgres
 import Database.Beam.Sqlite qualified as Sqlite
 import Database.Beam.Sqlite.Migrate qualified as Sqlite
+import Database.PostgreSQL.Simple qualified as Postgres
 import Database.SQLite.Simple qualified as Sqlite
 import Network.HTTP.Client (managerModifyRequest, newManager, setRequestIgnoreStatus)
 import Network.HTTP.Client.TLS (tlsManagerSettings)
@@ -72,7 +76,7 @@ import Plutus.PAB.Core.ContractInstance.STM as Instances (InstancesState, emptyI
 import Plutus.PAB.Db.Beam.ContractStore qualified as BeamEff
 import Plutus.PAB.Db.Memory.ContractStore (InMemInstances, initialInMemInstances)
 import Plutus.PAB.Db.Memory.ContractStore qualified as InMem
-import Plutus.PAB.Db.Schema (checkedSqliteDb)
+import Plutus.PAB.Db.Schema (checkedPostgresDb)
 import Plutus.PAB.Effects.Contract (ContractDefinition (AddDefinition, GetDefinitions))
 import Plutus.PAB.Effects.Contract.Builtin (Builtin, BuiltinHandler (BuiltinHandler, contractHandler),
                                             HasDefinitions (getDefinitions))
@@ -100,7 +104,7 @@ import Plutus.Blockfrost.Types qualified as BF (BlockfrostConfig (bfTokenPath), 
 -- | Application environment with a contract type `a`.
 data AppEnv a =
     AppEnv
-        { dbPool                :: Pool Sqlite.Connection
+        { dbPool                :: Pool Postgres.Connection
         , walletClientEnv       :: Maybe ClientEnv -- ^ No 'ClientEnv' when in the remote client setting.
         , nodeClientEnv         :: ClientEnv
         , chainQueryEnv         :: ChainQueryEnv
@@ -311,17 +315,31 @@ migrate trace config = do
 
 runBeamMigration
   :: Trace IO (PABLogMsg (Builtin a))
-  -> Sqlite.Connection
+  -> Postgres.Connection
   -> IO ()
-runBeamMigration trace conn = Sqlite.runBeamSqliteDebug (logDebugString trace . pack) conn $ do
-  autoMigrate Sqlite.migrationBackend checkedSqliteDb
+runBeamMigration trace conn = Postgres.runBeamPostgresDebug (logDebugString trace . pack) conn $ do
+  autoMigrate Postgres.migrationBackend checkedPostgresDb
 
 -- | Connect to the database.
-dbConnect :: Trace IO (PABLogMsg (Builtin a)) -> DbConfig -> IO (Pool Sqlite.Connection)
-dbConnect trace DbConfig {dbConfigFile, dbConfigPoolSize} = do
-  pool <- Pool.createPool (Sqlite.open $ unpack dbConfigFile) Sqlite.close dbConfigPoolSize 5_000_000 5
-  logDebugString trace $ "Connecting to DB: " <> dbConfigFile
+dbConnect :: Trace IO (PABLogMsg (Builtin a)) -> DbConfig -> IO (Pool Postgres.Connection)
+dbConnect trace DbConfig{..} = do
+  pool <- Pool.createPool
+    (Postgres.connect Postgres.ConnectInfo {
+      connectHost=unpack dbConfigHost,
+      connectPort=dbConfigPort,
+      connectUser=unpack dbConfigUser,
+      connectPassword=unpack dbConfigPass,
+      connectDatabase=unpack dbConfigDatabase
+    })
+    Postgres.close
+    dbConfigPoolSize
+    5_000_000
+    5
+  logDebugString trace $ "Connecting to DB: " <> databaseStr
   return pool
+  where
+    databaseStr :: Text
+    databaseStr = dbConfigHost <> ":" <> (pack . show) dbConfigPort
 
 handleContractDefinition ::
   forall a effs. HasDefinitions a

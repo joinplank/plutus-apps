@@ -37,6 +37,7 @@
           (hsPkgs."base" or (errorHandler.buildDepError "base"))
           (hsPkgs."beam-core" or (errorHandler.buildDepError "beam-core"))
           (hsPkgs."beam-sqlite" or (errorHandler.buildDepError "beam-sqlite"))
+          (hsPkgs."beam-postgres" or (errorHandler.buildDepError "beam-postgres"))
           (hsPkgs."containers" or (errorHandler.buildDepError "containers"))
           (hsPkgs."data-default" or (errorHandler.buildDepError "data-default"))
           (hsPkgs."freer-simple" or (errorHandler.buildDepError "freer-simple"))
@@ -47,6 +48,7 @@
           (hsPkgs."prettyprinter" or (errorHandler.buildDepError "prettyprinter"))
           (hsPkgs."resource-pool" or (errorHandler.buildDepError "resource-pool"))
           (hsPkgs."sqlite-simple" or (errorHandler.buildDepError "sqlite-simple"))
+          (hsPkgs."postgresql-simple" or (errorHandler.buildDepError "postgresql-simple"))
           (hsPkgs."streaming" or (errorHandler.buildDepError "streaming"))
           (hsPkgs."text" or (errorHandler.buildDepError "text"))
           ];
@@ -72,6 +74,7 @@
             (hsPkgs."beam-core" or (errorHandler.buildDepError "beam-core"))
             (hsPkgs."beam-migrate" or (errorHandler.buildDepError "beam-migrate"))
             (hsPkgs."beam-sqlite" or (errorHandler.buildDepError "beam-sqlite"))
+            (hsPkgs."beam-postgres" or (errorHandler.buildDepError "beam-postgres"))
             (hsPkgs."containers" or (errorHandler.buildDepError "containers"))
             (hsPkgs."contra-tracer" or (errorHandler.buildDepError "contra-tracer"))
             (hsPkgs."freer-extras" or (errorHandler.buildDepError "freer-extras"))
@@ -80,6 +83,7 @@
             (hsPkgs."resource-pool" or (errorHandler.buildDepError "resource-pool"))
             (hsPkgs."semigroups" or (errorHandler.buildDepError "semigroups"))
             (hsPkgs."sqlite-simple" or (errorHandler.buildDepError "sqlite-simple"))
+            (hsPkgs."postgresql-simple" or (errorHandler.buildDepError "postgresql-simple"))
             ];
           buildable = true;
           modules = [

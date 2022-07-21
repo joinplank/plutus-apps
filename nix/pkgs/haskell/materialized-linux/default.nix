@@ -513,6 +513,8 @@
         "hspec-expectations-lifted".revision = (((hackage."hspec-expectations-lifted")."0.10.0").revisions).default;
         "beam-sqlite".revision = (((hackage."beam-sqlite")."0.5.1.2").revisions).default;
         "beam-sqlite".flags.werror = false;
+        "beam-postgres".revision = (((hackage."beam-postgres")."0.5.2.1").revisions).default;
+        "beam-postgres".flags.werror = false;
         "vector-sized".revision = (((hackage."vector-sized")."1.5.0").revisions).default;
         "pem".revision = (((hackage."pem")."0.2.4").revisions).default;
         "barbies".revision = (((hackage."barbies")."2.0.3.1").revisions).default;
@@ -723,6 +725,8 @@
         "streaming-bytestring".revision = (((hackage."streaming-bytestring")."0.2.1").revisions).default;
         "say".revision = (((hackage."say")."0.1.0.1").revisions).default;
         "sqlite-simple".revision = (((hackage."sqlite-simple")."0.4.18.0").revisions).default;
+        "postgresql-simple".revision = (((hackage."postgresql-simple")."0.6.4").revisions).default;
+        "postgresql-libpq".revision = (((hackage."postgresql-libpq")."0.9.4.3").revisions).default;
         "http-date".revision = (((hackage."http-date")."0.0.11").revisions).default;
         "unix-compat".revision = (((hackage."unix-compat")."0.5.4").revisions).default;
         "unix-compat".flags.old-time = false;
@@ -1239,6 +1243,7 @@
           "pem".components.library.planned = lib.mkOverride 900 true;
           "memory".components.library.planned = lib.mkOverride 900 true;
           "beam-sqlite".components.library.planned = lib.mkOverride 900 true;
+          "beam-postgres".components.library.planned = lib.mkOverride 900 true;
           "tdigest".components.library.planned = lib.mkOverride 900 true;
           "http2".components.library.planned = lib.mkOverride 900 true;
           "typed-process".components.library.planned = lib.mkOverride 900 true;
@@ -1599,6 +1604,8 @@
           "ekg-json".components.library.planned = lib.mkOverride 900 true;
           "transformers".components.library.planned = lib.mkOverride 900 true;
           "sqlite-simple".components.library.planned = lib.mkOverride 900 true;
+          "postgresql-simple".components.library.planned = lib.mkOverride 900 true;
+          "postgresql-libpq".components.library.planned = lib.mkOverride 900 true;
           "parsec".components.library.planned = lib.mkOverride 900 true;
           "deepseq".components.library.planned = lib.mkOverride 900 true;
           "indexed-list-literals".components.library.planned = lib.mkOverride 900 true;

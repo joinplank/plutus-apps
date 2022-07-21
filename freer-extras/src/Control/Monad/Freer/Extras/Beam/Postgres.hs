@@ -18,7 +18,7 @@
 {-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE ViewPatterns          #-}
 
-module Control.Monad.Freer.Extras.Beam.Sqlite where
+module Control.Monad.Freer.Extras.Beam.Postgres where
 
 import Cardano.BM.Trace (Trace, logDebug)
 import Control.Concurrent (threadDelay)
@@ -41,50 +41,50 @@ import Database.Beam (Beamable, DatabaseEntity, FromBackendRow, Identity, MonadI
                       (>.))
 import Database.Beam.Backend.SQL (HasSqlValueSyntax)
 import Database.Beam.Backend.SQL.BeamExtensions (BeamHasInsertOnConflict (anyConflict, insertOnConflict, onConflictDoNothing))
-import Database.Beam.Sqlite (Sqlite, SqliteM, runBeamSqliteDebug)
-import Database.Beam.Sqlite.Syntax (SqliteValueSyntax)
-import Database.SQLite.Simple qualified as Sqlite
+import Database.Beam.Postgres (Connection, Pg, Postgres, runBeamPostgresDebug)
+import Database.Beam.Postgres.Syntax (PgValueSyntax)
+import Database.PostgreSQL.Simple qualified as Postgres
 
 data BeamEffect r where
   -- Workaround for "too many SQL variables" sqlite error. Provide a
   -- batch size so that we avoid the error. The maximum is 999.
   AddRowsInBatches
-    :: BeamableDb Sqlite table
+    :: BeamableDb Postgres table
     => Int
-    -> DatabaseEntity Sqlite db (TableEntity table)
+    -> DatabaseEntity Postgres db (TableEntity table)
     -> [table Identity]
     -> BeamEffect ()
 
   AddRows
-    :: BeamableDb Sqlite table
-    => SqlInsert Sqlite table
+    :: BeamableDb Postgres table
+    => SqlInsert Postgres table
     -> BeamEffect ()
 
   UpdateRows
     :: Beamable table
-    => SqlUpdate Sqlite table
+    => SqlUpdate Postgres table
     -> BeamEffect ()
 
   DeleteRows
     :: Beamable table
-    => SqlDelete Sqlite table
+    => SqlDelete Postgres table
     -> BeamEffect ()
 
   SelectList
-    :: FromBackendRow Sqlite a
-    => SqlSelect Sqlite a
+    :: FromBackendRow Postgres a
+    => SqlSelect Postgres a
     -> BeamEffect [a]
 
   -- | Select using Seek Pagination.
   SelectPage
-      :: (FromBackendRow Sqlite a, HasSqlValueSyntax SqliteValueSyntax a)
+      :: (FromBackendRow Postgres a, HasSqlValueSyntax PgValueSyntax a)
       => PageQuery a
-      -> Q Sqlite db BeamThreadingArg (QExpr Sqlite BeamThreadingArg a)
+      -> Q Postgres db BeamThreadingArg (QExpr Postgres BeamThreadingArg a)
       -> BeamEffect (Page a)
 
   SelectOne
-    :: FromBackendRow Sqlite a
-    => SqlSelect Sqlite a
+    :: FromBackendRow Postgres a
+    => SqlSelect Postgres a
     -> BeamEffect (Maybe a)
 
   Combined
@@ -100,14 +100,14 @@ instance Semigroup (BeamEffect ()) where
 handleBeam ::
   forall effs.
   ( LastMember IO effs
-  , Member (Reader (Pool Sqlite.Connection)) effs
+  , Member (Reader (Pool Postgres.Connection)) effs
   )
   => Trace IO BeamLog
   -> BeamEffect
   ~> Eff effs
 handleBeam trace eff = runBeam trace $ execute eff
   where
-    execute :: BeamEffect ~> SqliteM
+    execute :: BeamEffect ~> Pg
     execute = \case
         AddRowsInBatches _ _ [] -> pure ()
         AddRowsInBatches n table (splitAt n -> (batch, rest)) -> do
@@ -149,34 +149,25 @@ handleBeam trace eff = runBeam trace $ execute eff
 runBeam ::
   forall effs.
   ( LastMember IO effs
-  , Member (Reader (Pool Sqlite.Connection)) effs
+  , Member (Reader (Pool Connection)) effs
   )
   => Trace IO BeamLog
-  -> SqliteM
+  -> Pg
   ~> Eff effs
 runBeam trace action = do
-  pool <- ask @(Pool Sqlite.Connection)
-  liftIO $ Pool.withResource pool $ \conn -> loop conn ( 10 :: Int )
+  pool <- ask @(Pool Postgres.Connection)
+  liftIO $ Pool.withResource pool $ \conn -> loop conn ( 5 :: Int )
   where
     loop conn retries = do
       let traceSql = logDebug trace . SqlLog
-      resultEither <- try $ Sqlite.withTransaction conn $ runBeamSqliteDebug traceSql conn action
+      resultEither <- try $ Postgres.withTransaction conn $ runBeamPostgresDebug traceSql conn action
       case resultEither of
           -- 'Database.SQLite.Simple.ErrorError' corresponds to an SQL error or
           -- missing database. When this exception is raised, we suppose it's
           -- because the another transaction was already running.
-          Left e@(Sqlite.SQLError Sqlite.ErrorError _ _) | retries > 0 -> do
-              traceSql $ show e
+          Left Postgres.SqlError {} | retries > 0 -> do
               threadDelay 100_000
               loop conn (retries - 1)
-          Left e@(Sqlite.SQLError Sqlite.ErrorBusy _ _) | retries > 0 -> do
-            traceSql $ show e
-            threadDelay 100_000
-            loop conn (retries - 1)
-          Left e@(Sqlite.SQLError Sqlite.ErrorLocked _ _) | retries > 0 -> do
-            traceSql $ show e
-            threadDelay 100_000
-            loop conn (retries - 1)
           -- We handle and rethrow errors other than
           -- 'Database.SQLite.Simple.ErrorError'.
           Left e -> throw $ SqlError $ Text.pack $ show e

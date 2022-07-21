@@ -24,7 +24,8 @@ import Control.Lens (Lens', view)
 import Control.Monad (foldM)
 import Control.Monad.Freer (Eff, Member, type (~>))
 import Control.Monad.Freer.Error (Error, throwError)
-import Control.Monad.Freer.Extras.Beam (BeamEffect (..), BeamableSqlite, combined, selectList, selectOne, selectPage)
+import Control.Monad.Freer.Extras.Beam (BeamableDb)
+import Control.Monad.Freer.Extras.Beam.Sqlite (BeamEffect (..), combined, selectList, selectOne, selectPage)
 import Control.Monad.Freer.Extras.Log (LogMsg, logDebug, logError, logWarn)
 import Control.Monad.Freer.Extras.Pagination (Page (..), PageQuery (..))
 import Control.Monad.Freer.Reader (Reader, ask)
@@ -93,13 +94,13 @@ handleQuery = \case
     TxoSetAtAddress pageQuery cred -> getTxoSetAtAddress pageQuery cred
     GetTip -> getTip
     UnspentTxOutSetAtAddress pageQuery cred -> do
-        let lastItem = maybe Nothing (Just . fst) (pageQueryLastItem pageQuery)
+        let lastItem = (Just . fst) =<< pageQueryLastItem pageQuery
             nPageQuery = PageQuery { pageQuerySize = pageQuerySize pageQuery
                                    , pageQueryLastItem = lastItem}
         utxoResponse <- getUtxoSetAtAddress nPageQuery cred
         let txRefs = pageItems $ page utxoResponse
-        utxosInfo <- sequence $ map getUtxoutFromRef txRefs
-        let result = map ((<$>) fromJust) $ zip txRefs utxosInfo
+        utxosInfo <- mapM getUtxoutFromRef txRefs
+        let result = zipWith (curry ((<$>) fromJust)) txRefs utxosInfo
             uPage = Page { currentPageQuery = pageQuery
                          , nextPageQuery    = Nothing
                          , pageItems        = result
@@ -311,7 +312,7 @@ handleControl = \case
         newState <- restoreStateFromDb
         put newState
     CollectGarbage -> do
-        combined $
+        combined
             [ DeleteRows $ truncateTable (datumRows db)
             , DeleteRows $ truncateTable (scriptRows db)
             , DeleteRows $ truncateTable (redeemerRows db)
@@ -425,11 +426,11 @@ restoreStateFromDb = do
             = UtxoState.UtxoState (Map.findWithDefault mempty slot balances) (fromDbValue (Just tip))
 
 data InsertRows te where
-    InsertRows :: BeamableSqlite t => [t Identity] -> InsertRows (TableEntity t)
+    InsertRows :: BeamableDb Sqlite t => [t Identity] -> InsertRows (TableEntity t)
 
 instance Semigroup (InsertRows te) where
     InsertRows l <> InsertRows r = InsertRows (l <> r)
-instance BeamableSqlite t => Monoid (InsertRows (TableEntity t)) where
+instance BeamableDb Sqlite t => Monoid (InsertRows (TableEntity t)) where
     mempty = InsertRows []
 
 insertRows :: Db InsertRows -> BeamEffect ()
@@ -454,12 +455,12 @@ fromTx tx = mempty
                $ filter (\(c, t, _) -> not $ Ada.adaSymbol == c && Ada.adaToken == t)
                $ flattenValue txOutValue
         fromMap
-            :: (BeamableSqlite t, HasDbType (k, v), DbType (k, v) ~ t Identity)
+            :: (BeamableDb Sqlite t, HasDbType (k, v), DbType (k, v) ~ t Identity)
             => Lens' ChainIndexTx (Map.Map k v)
             -> InsertRows (TableEntity t)
         fromMap l = fromPairs (Map.toList . view l)
         fromPairs
-            :: (BeamableSqlite t, HasDbType (k, v), DbType (k, v) ~ t Identity)
+            :: (BeamableDb Sqlite t, HasDbType (k, v), DbType (k, v) ~ t Identity)
             => (ChainIndexTx -> [(k, v)])
             -> InsertRows (TableEntity t)
         fromPairs l = InsertRows . fmap toDbValue . l $ tx
