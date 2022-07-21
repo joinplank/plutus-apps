@@ -170,7 +170,7 @@ instance Pretty a => Pretty (LogMessage a) where
         pretty _logLevel <+> pretty _logMessageContent
 
 logDebug :: forall a effs. Member (LogMsg a) effs => a -> Eff effs ()
-logDebug m = send $ LMessage (LogMessage Debug m)
+logDebug _ = pure ()
 
 logWarn :: forall a effs. Member (LogMsg a) effs => a -> Eff effs ()
 logWarn m = send $ LMessage (LogMessage Warning m)
@@ -265,7 +265,7 @@ surroundInfo = surround . LogMessage Info
 
 -- | @surroundDebug = surround Debug@
 surroundDebug :: Member (LogObserve (LogMessage v)) effs => v -> Eff effs a -> Eff effs a
-surroundDebug = surround . LogMessage Debug
+surroundDebug _ = id
 
 -- | @surroundWarn = surround Warn@
 surroundWarn :: Member (LogObserve (LogMessage v)) effs => v -> Eff effs a -> Eff effs a
