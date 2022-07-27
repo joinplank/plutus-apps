@@ -39,7 +39,6 @@ import Cardano.Node.Types (ChainSyncHandle, NodeMode (AlonzoNode, MockNode),
                            PABServerConfig (PABServerConfig, pscBaseUrl, pscNetworkId, pscNodeMode, pscProtocolParametersJsonPath, pscSlotConfig, pscSocketPath))
 import Cardano.Protocol.Socket.Mock.Client qualified as MockClient
 import Cardano.Wallet.LocalClient qualified as LocalWalletClient
-import Cardano.Wallet.Mock.Client qualified as WalletMockClient
 import Cardano.Wallet.RemoteClient qualified as RemoteWalletClient
 import Cardano.Wallet.Types qualified as Wallet
 import Control.Concurrent.STM qualified as STM
@@ -54,7 +53,6 @@ import Data.Aeson (FromJSON, ToJSON, eitherDecode)
 import Data.ByteString.Lazy qualified as BSL
 import Data.Coerce (coerce)
 import Data.Default (def)
-import Data.Maybe (fromJust)
 import Data.Pool (Pool)
 import Data.Pool qualified as Pool
 import Data.Text (Text, pack, unpack)
@@ -86,7 +84,7 @@ import Plutus.PAB.Monitoring.PABLogMsg (PABLogMsg (SMultiAgent), PABMultiAgentMs
 import Plutus.PAB.Timeout (Timeout (Timeout))
 import Plutus.PAB.Types (ChainQueryConfig (..), ChainQueryEnv (..), Config (Config), DbConfig (..),
                          DevelopmentOptions (DevelopmentOptions, pabResumeFrom, pabRollbackHistory),
-                         PABError (BeamEffectError, ChainIndexError, NodeClientError, RemoteWalletWithMockNodeError, WalletClientError, WalletError),
+                         PABError (BeamEffectError, ChainIndexError, NodeClientError, WalletClientError, WalletError),
                          WebserverConfig (WebserverConfig), chainQueryConfig, dbConfig, developmentOptions,
                          endpointTimeout, getBlockfrostEnv, getChainIndexEnv, nodeServerConfig, pabWebserverConfig,
                          walletServerConfig)
@@ -213,7 +211,6 @@ handleWalletEffect
   , Member NodeClientEffect effs
   , Member (Error ClientError) effs
   , Member (Error WalletAPIError) effs
-  , Member (Error PABError) effs
   , Member (Reader (Maybe ClientEnv)) effs
   , Member (Reader ProtocolParameters) effs
   , Member (LogMsg WalletClientMsg) effs
@@ -224,13 +221,7 @@ handleWalletEffect
   -> Wallet
   -> WalletEffect
   ~> Eff effs
-handleWalletEffect PABServerConfig { pscNodeMode = MockNode } _ w eff = do
-    clientEnvM <- ask @(Maybe ClientEnv)
-    case clientEnvM of
-        Nothing -> throwError RemoteWalletWithMockNodeError
-        Just clientEnv ->
-            runReader clientEnv $ WalletMockClient.handleWalletClient @IO w eff
-handleWalletEffect nodeCfg@PABServerConfig { pscNodeMode = AlonzoNode } cidM w eff = do
+handleWalletEffect nodeCfg cidM w eff = do
     clientEnvM <- ask @(Maybe ClientEnv)
     case clientEnvM of
         Nothing -> RemoteWalletClient.handleWalletClient nodeCfg cidM eff
