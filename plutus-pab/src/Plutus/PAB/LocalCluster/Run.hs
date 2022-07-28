@@ -65,7 +65,7 @@ import Plutus.ChainIndex.App qualified as ChainIndex
 import Plutus.ChainIndex.Config qualified as CI
 import Plutus.ChainIndex.Logging qualified as ChainIndex.Logging
 import Plutus.ChainIndex.Types (Point (..))
-import Plutus.PAB.App (StorageBackend (BeamSqliteBackend))
+import Plutus.PAB.App (StorageBackend (BeamBackend))
 import Plutus.PAB.Effects.Contract.Builtin (BuiltinHandler, HasDefinitions)
 import Plutus.PAB.Run qualified as PAB.Run
 import Plutus.PAB.Run.Command (ConfigCommand (Migrate, PABWebserver))
@@ -245,7 +245,7 @@ launchPAB
     -> ChainIndexPort -- ^ Port of the chain index
     -> IO ()
 launchPAB userContractHandler passPhrase _ walletUrl (RunningNode socketPath _block0 (_gp, _vData)) (ChainIndexPort chainIndexPort) = do
-    let opts = AppOpts{minLogLevel = Nothing, logConfigPath = Nothing, configPath = Nothing, rollbackHistory = Nothing, resumeFrom = PointAtGenesis, runEkgServer = False, storageBackend = BeamSqliteBackend, cmd = PABWebserver, PAB.Command.passphrase = Just passPhrase}
+    let opts = AppOpts{minLogLevel = Nothing, logConfigPath = Nothing, configPath = Nothing, rollbackHistory = Nothing, resumeFrom = PointAtGenesis, runEkgServer = False, storageBackend = BeamBackend, cmd = PABWebserver, PAB.Command.passphrase = Just passPhrase}
         networkID = NetworkIdWrapper CAPI.Mainnet
         config =
             PAB.Config.defaultConfig

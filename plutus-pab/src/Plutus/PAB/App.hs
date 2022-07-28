@@ -44,11 +44,12 @@ import Cardano.Wallet.RemoteClient qualified as RemoteWalletClient
 import Cardano.Wallet.Types qualified as Wallet
 import Control.Concurrent.STM qualified as STM
 import Control.Lens (preview)
+import Control.Monad (void)
 import Control.Monad.Freer (Eff, LastMember, Member, interpret, reinterpret, reinterpret2, reinterpretN, type (~>))
 import Control.Monad.Freer.Error (Error, handleError, throwError)
 import Control.Monad.Freer.Extras.Beam.Effects (handleBeam)
-import Control.Monad.Freer.Extras.Beam.Postgres qualified as Postgres (runBeam)
-import Control.Monad.Freer.Extras.Beam.Sqlite qualified as Sqlite (runBeam)
+import Control.Monad.Freer.Extras.Beam.Postgres qualified as Postgres (DbConfig (..), runBeam)
+import Control.Monad.Freer.Extras.Beam.Sqlite qualified as Sqlite (DbConfig (..), runBeam)
 import Control.Monad.Freer.Extras.Log (LogMsg, mapLog)
 import Control.Monad.Freer.Reader (Reader, ask, runReader)
 import Control.Monad.IO.Class (MonadIO (liftIO))
@@ -65,7 +66,6 @@ import Database.Beam.Postgres qualified as Postgres
 import Database.Beam.Postgres.Migrate qualified as Postgres
 import Database.Beam.Sqlite qualified as Sqlite
 import Database.Beam.Sqlite.Migrate qualified as Sqlite
-import Database.PostgreSQL.Simple qualified as Postgres
 import Database.SQLite.Simple qualified as Sqlite
 import Network.HTTP.Client (managerModifyRequest, newManager, setRequestIgnoreStatus)
 import Network.HTTP.Client.TLS (tlsManagerSettings)
@@ -85,12 +85,12 @@ import Plutus.PAB.Monitoring.Monitoring (convertLog, handleLogMsgTrace)
 import Plutus.PAB.Monitoring.PABLogMsg (PABLogMsg (SMultiAgent), PABMultiAgentMsg (BeamLogItem, UserLog, WalletClient),
                                         WalletClientMsg)
 import Plutus.PAB.Timeout (Timeout (Timeout))
-import Plutus.PAB.Types (ChainQueryConfig (..), ChainQueryEnv (..), Config (Config), DbConfig (..),
+import Plutus.PAB.Types (ChainQueryConfig (..), ChainQueryEnv (..), Config (Config), DBConnection (..), DbConfig (..),
                          DevelopmentOptions (DevelopmentOptions, pabResumeFrom, pabRollbackHistory),
                          PABError (BeamEffectError, ChainIndexError, NodeClientError, RemoteWalletWithMockNodeError, WalletClientError, WalletError),
                          WebserverConfig (WebserverConfig), chainQueryConfig, dbConfig, developmentOptions,
                          endpointTimeout, getBlockfrostEnv, getChainIndexEnv, nodeServerConfig, pabWebserverConfig,
-                         walletServerConfig)
+                         takePostgres, takeSqlite, walletServerConfig)
 import Servant.Client (ClientEnv, ClientError, mkClientEnv)
 import Wallet.API (NodeClientEffect)
 import Wallet.Effects (WalletEffect)
@@ -107,7 +107,7 @@ import Plutus.Blockfrost.Types qualified as BF (BlockfrostConfig (bfTokenPath), 
 -- | Application environment with a contract type `a`.
 data AppEnv a =
     AppEnv
-        { dbPool                :: Pool Postgres.Connection
+        { dbPool                :: DBConnection
         , walletClientEnv       :: Maybe ClientEnv -- ^ No 'ClientEnv' when in the remote client setting.
         , nodeClientEnv         :: ClientEnv
         , chainQueryEnv         :: ChainQueryEnv
@@ -156,23 +156,34 @@ appEffectHandlers storageBackend config trace BuiltinHandler{contractHandler} =
               . interpret (Core.handleMappedReader @(AppEnv a) appInMemContractStore)
               . reinterpret2 InMem.handleContractStore
 
-            BeamSqliteBackend ->
+            BeamBackend ->
               interpret (handleLogMsgTrace trace)
               . reinterpret (mapLog @_ @(PABLogMsg (Builtin a)) SMultiAgent)
-              . interpret (Core.handleUserEnvReader @(Builtin a) @(AppEnv a))
-              . interpret (Core.handleMappedReader @(AppEnv a) dbPool)
               . flip handleError (throwError . BeamEffectError)
-              . interpret (handleBeam Postgres.runBeam (convertLog (SMultiAgent . BeamLogItem) trace))
-              . reinterpretN @'[_, _, _, _, _] (BeamEff.handleContractStore @Postgres)
+              . interpret (Core.handleUserEnvReader @(Builtin a) @(AppEnv a))
+              . case dbConfig config of
+                    SqliteDB _ ->
+                          interpret (Core.handleMappedReader @(AppEnv a) (takeSqlite . dbPool))
+                        . interpret (handleBeam Sqlite.runBeam (convertLog (SMultiAgent . BeamLogItem) trace))
+                        . reinterpretN @'[_, _, _, _, _] (BeamEff.handleContractStore @Sqlite)
+                    PostgresDB _ ->
+                          interpret (Core.handleMappedReader @(AppEnv a) (takePostgres . dbPool))
+                        . interpret (handleBeam Postgres.runBeam (convertLog (SMultiAgent . BeamLogItem) trace))
+                        . reinterpretN @'[_, _, _, _, _] (BeamEff.handleContractStore @Postgres)
 
         , handleContractDefinitionEffect =
             interpret (handleLogMsgTrace trace)
             . reinterpret (mapLog @_ @(PABLogMsg (Builtin a)) SMultiAgent)
-            . interpret (Core.handleUserEnvReader @(Builtin a) @(AppEnv a))
-            . interpret (Core.handleMappedReader @(AppEnv a) dbPool)
             . flip handleError (throwError . BeamEffectError)
-            . interpret (handleBeam Postgres.runBeam (convertLog (SMultiAgent . BeamLogItem) trace))
-            . reinterpretN @'[_, _, _, _, _] handleContractDefinition
+            . case dbConfig config of
+                  SqliteDB _ -> interpret (Core.handleUserEnvReader @(Builtin a) @(AppEnv a))
+                                . interpret (Core.handleMappedReader @(AppEnv a) (takeSqlite . dbPool))
+                                . interpret (handleBeam Sqlite.runBeam (convertLog (SMultiAgent . BeamLogItem) trace))
+                                . reinterpretN @'[_, _, _, _, _ ] handleContractDefinition
+                  PostgresDB _ -> interpret (Core.handleUserEnvReader @(Builtin a) @(AppEnv a))
+                                . interpret (Core.handleMappedReader @(AppEnv a) (takePostgres . dbPool))
+                                . interpret (handleBeam Postgres.runBeam (convertLog (SMultiAgent . BeamLogItem) trace))
+                                . reinterpretN @'[_, _, _, _, _] handleContractDefinition
 
         , handleServicesEffects = \wallet cidM -> do
             -- handle 'NodeClientEffect'
@@ -262,7 +273,7 @@ runApp
 
 type App a b = PABAction (Builtin a) (AppEnv a) b
 
-data StorageBackend = BeamSqliteBackend | InMemoryBackend
+data StorageBackend = BeamBackend | InMemoryBackend
   deriving (Eq, Ord, Show)
 
 mkEnv :: Trace IO (PABLogMsg (Builtin a)) -> Config -> IO (AppEnv a)
@@ -274,7 +285,7 @@ mkEnv appTrace appConfig@Config { dbConfig
     walletClientEnv <- maybe (pure Nothing) (fmap Just . clientEnv) $ preview Wallet._LocalWalletConfig walletServerConfig
     nodeClientEnv <- clientEnv pscBaseUrl
     chainQueryEnv <- mkChainQueryEnv
-    dbPool <- dbConnect appTrace dbConfig
+    dbPool <- dbConnect dbConfig appTrace
     txSendHandle <-
       case pscNodeMode of
         AlonzoNode -> pure Nothing
@@ -309,18 +320,19 @@ mkEnv appTrace appConfig@Config { dbConfig
 logDebugString :: Trace IO (PABLogMsg t) -> Text -> IO ()
 logDebugString trace = logDebug trace . SMultiAgent . UserLog
 
-dbConnect :: Trace IO (PABLogMsg (Builtin a)) -> DbConfig -> IO (Pool Postgres.Connection)
-dbConnect = dbConnectPostgres
+dbConnect :: DbConfig -> Trace IO (PABLogMsg (Builtin a)) -> IO DBConnection
+dbConnect (PostgresDB db) trace = PostgresPool <$> dbConnectPostgres db trace
+dbConnect (SqliteDB db) trace   = SqlitePool <$> dbConnectSqlite db trace
 
-migrate :: Trace IO (PABLogMsg (Builtin a)) -> DbConfig -> IO ()
-migrate = migratePostgres
-
+migrate :: DbConfig -> Trace IO (PABLogMsg (Builtin a)) -> IO ()
+migrate (PostgresDB db) = void . migratePostgres db
+migrate (SqliteDB db)   = void . migrateSqlite db
 
 -- POSTGRES
 -- | Initialize/update the database to hold our effects.
-migratePostgres :: Trace IO (PABLogMsg (Builtin a)) -> DbConfig -> IO ()
-migratePostgres trace config = do
-    pool <- dbConnectPostgres trace config
+migratePostgres :: Postgres.DbConfig -> Trace IO (PABLogMsg (Builtin a)) -> IO ()
+migratePostgres config trace = do
+    pool <- dbConnectPostgres config trace
     logDebugString trace "Running beam migration"
     Pool.withResource pool (runBeamMigrationPostgres trace)
 
@@ -332,8 +344,8 @@ runBeamMigrationPostgres trace conn = Postgres.runBeamPostgresDebug (logDebugStr
   autoMigrate Postgres.migrationBackend checkedPostgresDb
 
 -- | Connect to the database.
-dbConnectPostgres :: Trace IO (PABLogMsg (Builtin a)) -> DbConfig -> IO (Pool Postgres.Connection)
-dbConnectPostgres trace DbConfig{..} = do
+dbConnectPostgres :: Postgres.DbConfig -> Trace IO (PABLogMsg (Builtin a)) -> IO (Pool Postgres.Connection)
+dbConnectPostgres Postgres.DbConfig{..} trace = do
   pool <- Pool.createPool
     (Postgres.connect Postgres.ConnectInfo {
       connectHost=unpack dbConfigHost,
@@ -353,9 +365,9 @@ dbConnectPostgres trace DbConfig{..} = do
     databaseStr = dbConfigHost <> ":" <> (pack . show) dbConfigPort
 
 -- SQLITE
-migrateSqlite :: Trace IO (PABLogMsg (Builtin a)) -> DbConfig -> IO ()
-migrateSqlite trace config = do
-    pool <- dbConnectSqlite trace config
+migrateSqlite :: Sqlite.DbConfig -> Trace IO (PABLogMsg (Builtin a)) -> IO ()
+migrateSqlite config trace = do
+    pool <- dbConnectSqlite config trace
     logDebugString trace "Running beam migration"
     Pool.withResource pool (runBeamMigrationSqlite trace)
 
@@ -366,8 +378,8 @@ runBeamMigrationSqlite
 runBeamMigrationSqlite trace conn = Sqlite.runBeamSqliteDebug (logDebugString trace . pack) conn $ do
   autoMigrate Sqlite.migrationBackend checkedSqliteDb
 
-dbConnectSqlite :: Trace IO (PABLogMsg (Builtin a)) -> DbConfig -> IO (Pool Sqlite.Connection)
-dbConnectSqlite trace DbConfig {dbConfigPoolSize} = do
+dbConnectSqlite :: Sqlite.DbConfig -> Trace IO (PABLogMsg (Builtin a)) -> IO (Pool Sqlite.Connection)
+dbConnectSqlite Sqlite.DbConfig {dbConfigPoolSize} trace = do
   pool <- Pool.createPool (Sqlite.open $ unpack "./plutus-pab.db") Sqlite.close dbConfigPoolSize 5_000_000 5
   logDebugString trace $ "Connecting to DB: " <> "./plutus-pab.db"
   return pool
