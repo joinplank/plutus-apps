@@ -114,7 +114,21 @@ takeSqlite _               = error "Postgres db"
 data DbConfig = SqliteDB Sqlite.DbConfig
               | PostgresDB Postgres.DbConfig
     deriving (Show, Eq, Generic)
-    deriving anyclass (ToJSON, FromJSON)
+
+instance FromJSON DbConfig where
+    parseJSON (Object obj) = do
+        ci <- obj .:? "sqliteDB"
+        bf <- obj .:? "postgresDB"
+        case (ci, bf) of
+            (Just a, Nothing)  -> pure $ SqliteDB a
+            (Nothing, Just a)  -> pure $ PostgresDB a
+            (Nothing, Nothing) -> error "No configuration available"
+            (Just _, Just _)   -> error "Cant have Sqlite and Postgres databases"
+    parseJSON _            = fail "lo que sea"
+
+instance ToJSON DbConfig where
+    toJSON (SqliteDB cfg)   = object ["sqliteDB" .= cfg]
+    toJSON (PostgresDB cfg) = object ["postgresDB" .= cfg]
 
 -- | Default database config uses an in-memory sqlite database that is shared
 -- between all threads in the process.
@@ -170,7 +184,7 @@ data Config =
     deriving (Show, Eq, Generic)
 
 instance FromJSON Config where
-    parseJSON val@(Object obj) = Config <$> obj .: "dbConfig"
+    parseJSON val@(Object obj) = Config <$> parseJSON val
                                     <*> obj .: "walletServerConfig"
                                     <*> obj .: "nodeServerConfig"
                                     <*> obj .: "pabWebserverConfig"
@@ -183,13 +197,13 @@ instance FromJSON Config where
 instance ToJSON Config where
     toJSON Config {..}=
         object
-        [ "dbConfig" .= dbConfig
-        , "walletServerConfig" .= walletServerConfig
+        [ "walletServerConfig" .= walletServerConfig
         , "nodeServerConfig" .= nodeServerConfig
         , "pabWebserverConfig" .= pabWebserverConfig
         , "requestProcessingConfig" .= requestProcessingConfig
         , "developmentOptions" .= developmentOptions
         ] `mergeObjects` toJSON chainQueryConfig
+          `mergeObjects` toJSON dbConfig
 
 mergeObjects :: Value -> Value -> Value
 mergeObjects (Object o1) (Object o2) = Object $ HML.union o1 o2
