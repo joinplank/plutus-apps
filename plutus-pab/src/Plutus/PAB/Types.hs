@@ -103,14 +103,6 @@ instance Pretty PABError where
 data DBConnection = PostgresPool (Pool Postgres.Connection)
                   | SqlitePool (Pool Sqlite.Connection)
 
-takePostgres :: DBConnection -> Pool Postgres.Connection
-takePostgres (PostgresPool db) = db
-takePostgres _                 = error "Sqlite db"
-
-takeSqlite :: DBConnection -> Pool Sqlite.Connection
-takeSqlite (SqlitePool db) = db
-takeSqlite _               = error "Postgres db"
-
 data DbConfig = SqliteDB Sqlite.DbConfig
               | PostgresDB Postgres.DbConfig
     deriving (Show, Eq, Generic)
@@ -122,12 +114,15 @@ instance FromJSON DbConfig where
         case (ci, bf) of
             (Just a, Nothing)  -> pure $ SqliteDB a
             (Nothing, Just a)  -> pure $ PostgresDB a
-            (Nothing, Nothing) -> error "No configuration available"
-            (Just _, Just _)   -> error "Cant have Sqlite and Postgres databases"
-    parseJSON _            = fail "lo que sea"
+            (Nothing, Nothing) -> error $ unwords
+                                  [ "No configuration available, expecting"
+                                  , "sqliteDB or postgresDB"
+                                  ]
+            (Just _, Just _)   -> error "Can't have Sqlite and Postgres databases"
+    parseJSON _            = fail "Expecting object value"
 
 instance ToJSON DbConfig where
-    toJSON (SqliteDB cfg)   = object ["sqliteDB" .= cfg]
+    toJSON (SqliteDB cfg)   = object ["sqliteDB"   .= cfg]
     toJSON (PostgresDB cfg) = object ["postgresDB" .= cfg]
 
 -- | Default database config uses an in-memory sqlite database that is shared
@@ -149,9 +144,13 @@ instance FromJSON ChainQueryConfig where
         case (ci, bf) of
             (Just a, Nothing)  -> pure $ ChainIndexConfig a
             (Nothing, Just a)  -> pure $ BlockfrostConfig a
-            (Nothing, Nothing) -> error "No configuration available"
-            (Just _, Just _)   -> error "Cant have ChainIndex and Blockfrost configuration"
-    parseJSON _            = fail "lo que sea"
+            (Nothing, Nothing) -> error $ unwords
+                                  [ "No configuration available, expecting"
+                                  , "chainIndexConfig or blockfrostConfig"
+                                  ]
+            (Just _, Just _)   -> error
+                                  "Cant have ChainIndex and Blockfrost configuration"
+    parseJSON _            = fail "Expecting object value"
 
 instance ToJSON ChainQueryConfig where
     toJSON (ChainIndexConfig cfg) = object ["chainIndexConfig" .= cfg]
@@ -184,15 +183,15 @@ data Config =
     deriving (Show, Eq, Generic)
 
 instance FromJSON Config where
-    parseJSON val@(Object obj) = Config <$> parseJSON val
-                                    <*> obj .: "walletServerConfig"
-                                    <*> obj .: "nodeServerConfig"
-                                    <*> obj .: "pabWebserverConfig"
-                                    <*> parseJSON val
-                                    <*> obj .: "requestProcessingConfig"
-                                    <*> obj .: "developmentOptions"
+    parseJSON val@(Object obj) = Config
+                                 <$> parseJSON val
+                                 <*> obj .: "walletServerConfig"
+                                 <*> obj .: "nodeServerConfig"
+                                 <*> obj .: "pabWebserverConfig"
+                                 <*> parseJSON val
+                                 <*> obj .: "requestProcessingConfig"
+                                 <*> obj .: "developmentOptions"
     parseJSON val = fail $ "Unexpected value: " ++ show val
-
 
 instance ToJSON Config where
     toJSON Config {..}=
@@ -211,7 +210,7 @@ mergeObjects _ _                     = error "Value must be an object"
 
 defaultConfig :: Config
 defaultConfig =
-  Config
+    Config
     { dbConfig = def
     , walletServerConfig = def
     , nodeServerConfig = def
@@ -327,3 +326,4 @@ mkChainOverview = foldl reducer emptyChainOverview
             }
 
 makePrisms ''PABError
+makePrisms ''DBConnection
