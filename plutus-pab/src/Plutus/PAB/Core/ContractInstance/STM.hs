@@ -38,6 +38,7 @@ module Plutus.PAB.Core.ContractInstance.STM(
     , InstancesState
     , emptyInstancesState
     , insertInstance
+    , deleteInstance
     , callEndpointOnInstance
     , callEndpointOnInstanceTimeout
     , observableContractState
@@ -388,6 +389,10 @@ finalResult instanceId m = do
 -- | Insert an 'InstanceState' value into the 'InstancesState'
 insertInstance :: ContractInstanceId -> InstanceState -> InstancesState -> STM ()
 insertInstance instanceID state (InstancesState m) = STM.modifyTVar m (Map.insert instanceID state)
+
+-- | Remove an 'InstanceState' value from the 'InstancesState'
+deleteInstance :: ContractInstanceId -> InstancesState -> STM ()
+deleteInstance instanceId (InstancesState m) = STM.modifyTVar m (Map.delete instanceId)
 
 -- | Wait for the status of a transaction to change.
 waitForTxStatusChange :: TxStatus -> TxId -> BlockchainEnv -> STM TxStatus
