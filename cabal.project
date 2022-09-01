@@ -4,7 +4,7 @@ index-state: 2022-05-18T00:00:00Z
 packages: doc
           freer-extras
           playground-common
-          plutus-blockfrost
+          pab-blockfrost
           plutus-chain-index
           plutus-chain-index-core
           plutus-contract
