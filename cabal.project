@@ -18,6 +18,9 @@ packages: doc
           plutus-use-cases
           quickcheck-dynamic
           web-ghc
+          blockfrost-haskell/blockfrost-api
+          blockfrost-haskell/blockfrost-client-core
+          blockfrost-haskell/blockfrost-client
 
 -- We never, ever, want this.
 write-ghc-environment-files: never
