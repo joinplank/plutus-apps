@@ -30,6 +30,7 @@ common libstuff
   default-language:    Haskell2010
   default-extensions:
     DataKinds
+    ImportQualifiedPost
     DeriveAnyClass
     DeriveGeneric
     DerivingVia
