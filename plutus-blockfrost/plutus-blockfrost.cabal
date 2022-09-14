@@ -45,5 +45,5 @@ library
         filepath,
         freer-simple -any,
         hex-text,
-        safe-money, 
+        safe-money,
         text -any,

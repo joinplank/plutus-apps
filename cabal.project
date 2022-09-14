@@ -38,6 +38,9 @@ packages: cardano-node-emulator
           plutus-script-utils
           plutus-tx-constraints
           plutus-use-cases
+          blockfrost-haskell/blockfrost-api
+          blockfrost-haskell/blockfrost-client-core
+          blockfrost-haskell/blockfrost-client
 
 -- We never, ever, want this.
 write-ghc-environment-files: never
