@@ -36,6 +36,7 @@ common libstuff
     FlexibleInstances
     GADTs
     GeneralizedNewtypeDeriving
+    ImportQualifiedPost
     InstanceSigs
     LambdaCase
     MultiParamTypeClasses
