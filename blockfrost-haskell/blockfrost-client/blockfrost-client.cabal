@@ -45,8 +45,9 @@ common libstuff
     ghc-options: -Werror
 
 library
-  import:          libstuff
-  hs-source-dirs:  src
+  import:             libstuff
+  hs-source-dirs:     src
+  default-extensions: ImportQualifiedPost
   exposed-modules:
     Blockfrost.Client
     Blockfrost.Client.Cardano.Accounts
