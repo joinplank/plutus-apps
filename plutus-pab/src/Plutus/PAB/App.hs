@@ -233,12 +233,6 @@ handleWalletEffect
   -> Wallet
   -> WalletEffect
   ~> Eff effs
-handleWalletEffect PABServerConfig { pscNodeMode = MockNode } _ w eff = do
-    clientEnvM <- ask @(Maybe ClientEnv)
-    case clientEnvM of
-        Nothing -> throwError RemoteWalletWithMockNodeError
-        Just clientEnv ->
-            runReader clientEnv $ WalletMockClient.handleWalletClient @IO w eff
 handleWalletEffect nodeCfg cidM w eff = do
     clientEnvM <- ask @(Maybe ClientEnv)
     case clientEnvM of
