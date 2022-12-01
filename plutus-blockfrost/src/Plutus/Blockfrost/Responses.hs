@@ -19,7 +19,6 @@ import Data.Aeson qualified as JSON
 import Data.Aeson.QQ
 import Data.Maybe (fromJust)
 import Data.Text (Text)
-import Data.Text qualified as Text (drop)
 import Text.Hex (decodeHex)
 
 import Blockfrost.Client
@@ -87,7 +86,7 @@ processGetValidator (Just val) = buildResponse val
     buildResponse = maybe (pure Nothing) retFromCbor . _scriptCborCbor
 
     retFromCbor :: PlutusValidator a => Text -> IO (Maybe a)
-    retFromCbor = return . Just . fromSucceed . fromCBOR . Text.drop 6
+    retFromCbor = return . Just . fromSucceed . fromCBOR
 
 processUnspentTxOut :: Integer -> Maybe [UtxoOutput] -> IO (Maybe ChainIndexTxOut)
 processUnspentTxOut _ Nothing = pure Nothing
