@@ -19,6 +19,7 @@ import Data.Aeson qualified as JSON
 import Data.Aeson.QQ
 import Data.Maybe (fromJust)
 import Data.Text (Text)
+import Data.Text qualified as Text (drop)
 import Text.Hex (decodeHex)
 
 import Blockfrost.Client
@@ -85,8 +86,13 @@ processGetValidator (Just val) = buildResponse val
     buildResponse :: PlutusValidator a => ScriptCBOR -> IO (Maybe a)
     buildResponse = maybe (pure Nothing) retFromCbor . _scriptCborCbor
 
+    -- XXX: sometimes we must drop the first 6 characters (e.g. in mainnet)
+    -- and sometimes not (e.g. in preprod). try both:
     retFromCbor :: PlutusValidator a => Text -> IO (Maybe a)
-    retFromCbor = return . Just . fromSucceed . fromCBOR
+    retFromCbor txt = return $ case (fromCBOR txt, fromCBOR (Text.drop 6 txt)) of
+            (JSON.Success a, _) -> Just a
+            (_, JSON.Success a) -> Just a
+            _                   -> Nothing
 
 processUnspentTxOut :: Integer -> Maybe [UtxoOutput] -> IO (Maybe ChainIndexTxOut)
 processUnspentTxOut _ Nothing = pure Nothing
