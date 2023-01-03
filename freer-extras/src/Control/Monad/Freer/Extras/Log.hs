@@ -170,7 +170,7 @@ instance Pretty a => Pretty (LogMessage a) where
         pretty _logLevel <+> pretty _logMessageContent
 
 logDebug :: forall a effs. Member (LogMsg a) effs => a -> Eff effs ()
-logDebug _ = pure ()
+logDebug m = send $ LMessage (LogMessage Debug m)
 
 logWarn :: forall a effs. Member (LogMsg a) effs => a -> Eff effs ()
 logWarn m = send $ LMessage (LogMessage Warning m)
