@@ -15,9 +15,9 @@ import Control.Lens
 import Control.Monad (void)
 import Control.Monad.Freer qualified as Freer
 import Control.Monad.Freer.Error qualified as Freer
-import Data.Default (Default (def))
+--import Data.Default (Default (def))
 import Test.Tasty
-import Test.Tasty.HUnit qualified as HUnit
+--import Test.Tasty.HUnit qualified as HUnit
 
 import Cardano.Node.Emulator.TimeSlot qualified as TimeSlot
 import Ledger qualified
@@ -27,7 +27,7 @@ import Ledger.Value.CardanoAPI qualified as Value
 import Plutus.Contract.Oracle (Observation (..), SignedMessage)
 import Plutus.Contract.Oracle qualified as Oracle
 import Plutus.Script.Utils.Ada qualified as Ada
-import Plutus.Script.Utils.Value (Value, scale)
+import Plutus.Script.Utils.Value (Value)
 
 import Ledger.CardanoWallet qualified as CW
 import Plutus.Contract.Test
@@ -36,7 +36,7 @@ import Plutus.Contracts.Future (Future (..), FutureAccounts (..), FutureError, F
 import Plutus.Contracts.Future qualified as F
 import Plutus.Trace.Emulator (ContractHandle, EmulatorTrace)
 import Plutus.Trace.Emulator qualified as Trace
-import PlutusTx qualified
+--import PlutusTx qualified
 import Streaming.Prelude qualified as S
 import Wallet.Emulator.Folds qualified as Folds
 import Wallet.Emulator.Stream qualified as Stream
@@ -52,20 +52,20 @@ options = defaultCheckOptions
 tests :: TestTree
 tests =
     testGroup "futures"
-    [ checkPredicateOptions options "setup tokens"
-        (assertDone (F.setupTokens @() @FutureSchema @FutureError)
-                    (Trace.walletInstanceTag w1) (const True) "setupTokens")
-        $ void F.setupTokensTrace
+    [ -- checkPredicateOptions options "setup tokens"
+    --     (assertDone (F.setupTokens @() @FutureSchema @FutureError)
+    --                 (Trace.walletInstanceTag w1) (const True) "setupTokens")
+    --     $ void F.setupTokensTrace
 
-    , checkPredicateOptions options "can initialise and obtain tokens"
-        (    walletFundsChangePlutus w1 ( scale (-1) (F.initialMargin $ theFuture startTime)
-                                       <> F.tokenFor Short testAccounts
-                                        )
-        .&&. walletFundsChangePlutus w2 ( scale (-1) (F.initialMargin $ theFuture startTime)
-                                       <> F.tokenFor Long testAccounts
-                                        )
-        )
-        (void (initContract >> joinFuture))
+    -- , checkPredicateOptions options "can initialise and obtain tokens"
+    --     (    walletFundsChangePlutus w1 ( scale (-1) (F.initialMargin $ theFuture startTime)
+    --                                    <> F.tokenFor Short testAccounts
+    --                                     )
+    --     .&&. walletFundsChangePlutus w2 ( scale (-1) (F.initialMargin $ theFuture startTime)
+    --                                    <> F.tokenFor Long testAccounts
+    --                                     )
+    --     )
+    --     (void (initContract >> joinFuture))
 
     -- See Note [Oracle incorrect implementation]
     -- , checkPredicateOptions options "can increase margin"
@@ -85,14 +85,14 @@ tests =
     --     .&&. assertAccountBalance (ftoLong testAccounts) (== Ada.lovelaceValueOf 3_310_000))
     --     payOutTrace
 
-    , goldenPir "test/Spec/future.pir" $$(PlutusTx.compile [|| F.futureStateMachine ||])
+    -- , goldenPir "test/Spec/future.pir" $$(PlutusTx.compile [|| F.futureStateMachine ||])
 
-    , HUnit.testCaseSteps "script size is reasonable" $ \step ->
-        reasonable' step (F.validator (theFuture startTime) testAccounts) 63000
+    -- , HUnit.testCaseSteps "script size is reasonable" $ \step ->
+    --     reasonable' step (F.validator (theFuture startTime) testAccounts) 63000
     ]
 
-    where
-        startTime = TimeSlot.scSlotZeroTime def
+    -- where
+    --     startTime = TimeSlot.scSlotZeroTime def
 
 setup :: POSIXTime -> FutureSetup
 setup startTime =

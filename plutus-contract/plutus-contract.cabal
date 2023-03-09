@@ -139,7 +139,6 @@ library
     , plutus-core             >=1.0.0
     , plutus-ledger-api       >=1.0.0
     , plutus-tx               >=1.0.0
-    , quickcheck-dynamic      >=3.0.0
 
   if !(impl(ghcjs) || os(ghcjs))
     build-depends: plutus-tx-plugin >=1.0.0
@@ -155,19 +154,15 @@ library
     , containers
     , cryptonite            >=0.25
     , data-default
-    , deepseq
-    , directory
-    , filepath
     , flat
-    , foldl
     , freer-simple
     , hashable
     , hedgehog
     , html-entities
     , IntervalMap
     , lens
+    , foldl
     , memory
-    , mmorph
     , mtl
     , pretty
     , prettyprinter         >=1.1.0.1
@@ -186,6 +181,13 @@ library
     , transformers
     , unordered-containers
     , uuid
+    , tasty
+    , directory
+    , filepath
+    , tasty-hunit
+    , tasty-golden
+    , deepseq
+    , quickcheck-dynamic
 
   if flag(defer-plugin-errors)
     ghc-options: -fplugin-opt PlutusTx.Plugin:defer-errors
@@ -208,13 +210,6 @@ library
       Plutus.Contract.Test.Coverage.ReportCoverage
       Plutus.Contract.Test.MissingLovelace
 
-    ------------------------
-    -- Non-IOG dependencies
-    ------------------------
-    build-depends:
-      , tasty
-      , tasty-golden
-      , tasty-hunit
 
 test-suite plutus-contract-test
   -- TODO: put this back, turns out there were lots of warnings in the `plutus-emulator` tests...
@@ -280,7 +275,6 @@ test-suite plutus-contract-test
     , plutus-core                     >=1.0.0
     , plutus-ledger-api               >=1.0.0
     , plutus-tx                       >=1.0.0
-    , quickcheck-dynamic              >=3.0.0
 
   if !(impl(ghcjs) || os(ghcjs))
     build-depends: plutus-tx-plugin >=1.0.0
