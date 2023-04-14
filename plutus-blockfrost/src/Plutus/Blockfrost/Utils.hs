@@ -80,6 +80,11 @@ toPlutusAddress bAddr = case deserialized of
     deserialized :: Maybe (Api.Address ShelleyAddr)
     deserialized = deserialiseAddress AsShelleyAddress (unAddress bAddr)
 
+fromPlutusAddress :: NetworkId -> LA.Address -> Blockfrost.Address
+fromPlutusAddress netId a = case toCardanoAddress netId a of
+    Left err   -> error $ show err
+    Right addr -> mkAddress $ serialiseAddress addr
+
 credentialToAddress :: NetworkId -> Credential -> Blockfrost.Address
 credentialToAddress netId c = case toCardanoAddress netId pAddress of
     Left err   -> error $ show err

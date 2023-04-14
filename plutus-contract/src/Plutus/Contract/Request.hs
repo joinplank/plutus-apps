@@ -373,9 +373,9 @@ utxosAt ::
     -> Contract w s e (Map TxOutRef ChainIndexTxOut)
 utxosAt addr = do
     let pq = def
-    cir <- pabReq (ChainIndexQueryReq $ E.UnspentTxOutSetAtAddress pq $ addressCredential addr) E._ChainIndexQueryResp
+    cir <- pabReq (ChainIndexQueryReq $ E.UnspentTxOutSetAtAddress' pq addr) E._ChainIndexQueryResp
     case cir of
-        E.UnspentTxOutSetAtAddressResponse r -> pure $ fromList $ pageItems $ pageu $ r
+        E.UnspentTxOutSetAtAddressResponse r -> pure $ fromList $ pageItems $ pageu r
         r                                    -> throwError $ review _ChainIndexContractError ("UnspentTxOutResponse", r)
 
 

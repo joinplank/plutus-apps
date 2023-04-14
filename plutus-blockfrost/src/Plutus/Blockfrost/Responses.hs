@@ -12,6 +12,7 @@ module Plutus.Blockfrost.Responses (
     , processIsUtxo
     , processGetUtxos
     , processUnspentTxOutSetAtAddress
+    , processUnspentTxOutSetAtAddress'
     ) where
 
 import Control.Monad.Freer.Extras.Pagination (Page (..), PageQuery (..))
@@ -176,6 +177,51 @@ processUnspentTxOutSetAtAddress pq cred (blockN, xs) = do
 
     buildResponse :: AddressUtxo -> ChainIndexTxOut
     buildResponse utxo = case cred of
+        PubKeyCredential _       -> buildPublicKeyTxOut add utxo
+        ScriptCredential valHash -> buildScriptTxOut add utxo valHash
+
+    buildScriptTxOut :: Ledger.Address -> AddressUtxo -> ValidatorHash -> ChainIndexTxOut
+    buildScriptTxOut addr utxo val = ScriptChainIndexTxOut { _ciTxOutAddress=addr
+                                                           , _ciTxOutValidator=Left val
+                                                           , _ciTxOutDatum=utxoDatumHash utxo
+                                                           , _ciTxOutValue=utxoValue utxo
+                                                           }
+
+    buildPublicKeyTxOut :: Ledger.Address -> AddressUtxo -> ChainIndexTxOut
+    buildPublicKeyTxOut addr utxo = PublicKeyChainIndexTxOut { _ciTxOutAddress=addr
+                                                             , _ciTxOutValue=utxoValue utxo}
+
+    utxoValue :: AddressUtxo -> Ledger.Value
+    utxoValue = amountsToValue . _addressUtxoAmount
+
+    utxoDatumHash :: AddressUtxo -> Either Ledger.DatumHash Datum
+    utxoDatumHash = maybe (Right unitDatum) (Left . textToDatumHash) . _addressUtxoDataHash
+
+
+
+processUnspentTxOutSetAtAddress' ::
+    PageQuery (TxOutRef, ChainIndexTxOut)
+    -> Ledger.Address
+    -> (Block, [AddressUtxo])
+    -> IO UnspentTxOutSetResponse
+processUnspentTxOutSetAtAddress' pq add (blockN, xs) = do
+    tip <- processTip blockN
+    return $ UnspentTxOutSetResponse {currentTipu = tip, pageu = pageu}
+  where
+    pageu :: Page (TxOutRef, ChainIndexTxOut)
+    pageu = Page { currentPageQuery=pq
+                 , nextPageQuery=Nothing
+                 , pageItems=items
+                 }
+
+    items :: [(TxOutRef, ChainIndexTxOut)]
+    items = map transform xs
+
+    transform :: AddressUtxo -> (TxOutRef, ChainIndexTxOut)
+    transform utxo = (utxoToRef utxo, buildResponse utxo)
+
+    buildResponse :: AddressUtxo -> ChainIndexTxOut
+    buildResponse utxo = case Ledger.addressCredential add of
         PubKeyCredential _       -> buildPublicKeyTxOut add utxo
         ScriptCredential valHash -> buildScriptTxOut add utxo valHash
 

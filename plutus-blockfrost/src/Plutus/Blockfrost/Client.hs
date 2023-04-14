@@ -64,3 +64,4 @@ handleBlockfrostClient event = do
             TxoSetAtAddress _ _           -> ioError (userError "TODO")
             GetTip                        -> runClient getTipBlockfrost >>= processTip
             UnspentTxOutSetAtAddress pq a -> (runClientWithDef defaultGetUtxo . getUtxoAtAddressBlockfrost pq . credentialToAddress (envNetworkId bfEnv)) a  >>= processUnspentTxOutSetAtAddress pq a
+            UnspentTxOutSetAtAddress' pq a -> (runClientWithDef defaultGetUtxo . getUtxoAtAddressBlockfrost pq . fromPlutusAddress (envNetworkId bfEnv)) a  >>= processUnspentTxOutSetAtAddress' pq a

@@ -36,6 +36,7 @@ module Plutus.Contract.Effects( -- TODO: Move to Requests.Internal
     _TxoSetAtAddress,
     _GetTip,
     _UnspentTxOutSetAtAddress,
+    _UnspentTxOutSetAtAddress',
     -- * Plutus application backend response effect types
     PABResp(..),
     _AwaitSlotResp,
@@ -238,6 +239,7 @@ data ChainIndexQuery =
   | TxoSetAtAddress (PageQuery TxOutRef) Credential
   | GetTip
   | UnspentTxOutSetAtAddress (PageQuery (TxOutRef, ChainIndexTxOut)) Credential
+  | UnspentTxOutSetAtAddress' (PageQuery (TxOutRef, ChainIndexTxOut)) Address
     deriving stock (Eq, Show, Generic)
     deriving anyclass (ToJSON, FromJSON, OpenApi.ToSchema)
 

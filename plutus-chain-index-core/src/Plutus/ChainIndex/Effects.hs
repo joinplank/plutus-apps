@@ -29,8 +29,8 @@ module Plutus.ChainIndex.Effects(
 
 import Control.Monad.Freer.Extras.Pagination (PageQuery)
 import Control.Monad.Freer.TH (makeEffect)
-import Ledger (AssetClass, Datum, DatumHash, MintingPolicy, MintingPolicyHash, Redeemer, RedeemerHash, StakeValidator,
-               StakeValidatorHash, Validator, ValidatorHash)
+import Ledger (Address, AssetClass, Datum, DatumHash, MintingPolicy, MintingPolicyHash, Redeemer, RedeemerHash,
+               StakeValidator, StakeValidatorHash, Validator, ValidatorHash)
 import Ledger.Credential (Credential)
 import Ledger.Tx (ChainIndexTxOut, TxOutRef)
 import Plutus.ChainIndex.Api (IsUtxoResponse, TxosResponse, UnspentTxOutSetResponse, UtxosResponse)
@@ -77,6 +77,8 @@ data ChainIndexQueryEffect r where
     -- | Get the unspent txouts located at an address
     -- This is to avoid multiple queries from chain-index when using utxosAt
     UnspentTxOutSetAtAddress :: PageQuery (TxOutRef, ChainIndexTxOut) -> Credential -> ChainIndexQueryEffect UnspentTxOutSetResponse
+
+    UnspentTxOutSetAtAddress' :: PageQuery (TxOutRef, ChainIndexTxOut) -> Address -> ChainIndexQueryEffect UnspentTxOutSetResponse
 
 makeEffect ''ChainIndexQueryEffect
 
