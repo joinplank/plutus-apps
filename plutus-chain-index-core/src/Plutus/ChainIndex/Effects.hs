@@ -13,6 +13,7 @@ module Plutus.ChainIndex.Effects(
     , redeemerFromHash
     , unspentTxOutFromRef
     , unspentTxOutSetAtAddress
+    , unspentTxOutSetAtAddress'
     , utxoSetMembership
     , utxoSetAtAddress
     , utxoSetWithCurrency

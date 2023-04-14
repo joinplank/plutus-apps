@@ -234,6 +234,8 @@ handleChainIndexQueries = RequestHandler $ \chainIndexQuery ->
         TxoSetAtAddress pq c          -> TxoSetAtResponse <$> ChainIndexEff.txoSetAtAddress pq c
         GetTip                        -> GetTipResponse <$> ChainIndexEff.getTip
         UnspentTxOutSetAtAddress pq c -> UnspentTxOutSetAtAddressResponse <$> ChainIndexEff.unspentTxOutSetAtAddress pq c
+        UnspentTxOutSetAtAddress' pq a -> UnspentTxOutSetAtAddressResponse <$> ChainIndexEff.unspentTxOutSetAtAddress' pq a
+
 
 handleOwnInstanceIdQueries ::
     forall effs a.
