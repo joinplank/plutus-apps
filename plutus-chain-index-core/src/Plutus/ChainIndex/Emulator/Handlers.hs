@@ -187,6 +187,22 @@ handleQuery = \case
                          }
             cTip = currentTip utxoResponse
         pure $ UnspentTxOutSetResponse { currentTipu = cTip, pageu = uPage }
+    UnspentTxOutSetAtAddress' pageQuery addr -> do
+        let cred = addressCredential addr
+            lastItem = maybe Nothing (Just . fst) (pageQueryLastItem pageQuery)
+            nPageQuery = PageQuery { pageQuerySize = pageQuerySize pageQuery
+                                   , pageQueryLastItem = lastItem}
+        utxoResponse <- getTxOutRefsAtAddress nPageQuery cred
+        let txOutRefs = pageItems $ page utxoResponse
+        utxosInfo <- sequence $ map getUtxoutFromRef txOutRefs
+        let result = map ((<$>) fromJust) $ zip txOutRefs utxosInfo
+            uPage = Page { currentPageQuery = pageQuery
+                         , nextPageQuery    = Nothing
+                         , pageItems        = result
+                         }
+            cTip = currentTip utxoResponse
+        pure $ UnspentTxOutSetResponse { currentTipu = cTip, pageu = uPage }
+
 
 appendBlocks ::
     forall effs.
